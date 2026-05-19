@@ -11,6 +11,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
+import inmobiliario.modelo.Vivienda;
+
 public class ExtractorKyero {
 
     public List<String> obtenerEnlacesViviendas(String urlBusqueda, int maxResultados) throws Exception {
@@ -24,6 +26,19 @@ public class ExtractorKyero {
             enlaces.add(tarjetas.get(i).absUrl("href"));
         }
         return enlaces;
+    }
+
+    public Vivienda extraerVivienda(String urlVivienda) throws Exception {
+        String html = descargarPagina(urlVivienda);
+        Document doc = Jsoup.parse(html, urlVivienda);
+
+        Vivienda vivienda = new Vivienda();
+        vivienda.url = urlVivienda;
+        vivienda.titulo = doc.selectFirst("h1").text();
+        vivienda.descripcion = doc.selectFirst("meta[name=description]").attr("content");
+        vivienda.imagen = doc.selectFirst("meta[property=og:image]").attr("content");
+
+        return vivienda;
     }
 
     private String descargarPagina(String url) throws Exception {
