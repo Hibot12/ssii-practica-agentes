@@ -9,7 +9,8 @@ public class Principal {
         ExtractorKyero extractor = new ExtractorKyero();
 
         List<String> enlaces = extractor.obtenerEnlacesViviendas(
-                "https://www.kyero.com/en/valencia-property-for-sale-0l53632"
+                "https://www.kyero.com/en/valencia-property-for-sale-0l53632",
+                5
         );
 
         System.out.println("Viviendas encontradas:");

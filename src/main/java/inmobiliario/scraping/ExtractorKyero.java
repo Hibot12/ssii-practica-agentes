@@ -13,14 +13,15 @@ import org.jsoup.nodes.Element;
 
 public class ExtractorKyero {
 
-    public List<String> obtenerEnlacesViviendas(String urlBusqueda) throws Exception {
+    public List<String> obtenerEnlacesViviendas(String urlBusqueda, int maxResultados) throws Exception {
         String html = descargarPagina(urlBusqueda);
         Document doc = Jsoup.parse(html, urlBusqueda);
         List<Element> tarjetas = doc.select("a[data-testid=property-tile]");
 
+        int total = Math.min(maxResultados, tarjetas.size());
         List<String> enlaces = new ArrayList<>();
-        for (Element tarjeta : tarjetas) {
-            enlaces.add(tarjeta.absUrl("href"));
+        for (int i = 0; i < total; i++) {
+            enlaces.add(tarjetas.get(i).absUrl("href"));
         }
         return enlaces;
     }
