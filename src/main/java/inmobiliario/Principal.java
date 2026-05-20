@@ -15,7 +15,7 @@ public class Principal {
 
         for (Vivienda v : viviendas) {
             System.out.println(v.titulo);
-            System.out.println("Precio: " + v.precio);
+            System.out.println("Precio: " + v.precio + " EUR");
             System.out.println("Habitaciones: " + v.habitaciones + "  Baños: " + v.banos + "  m2: " + v.superficieM2);
             System.out.println(v.url);
             System.out.println();
