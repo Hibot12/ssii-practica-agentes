@@ -67,7 +67,10 @@ public class ExtractorKyero {
         List<String> enlaces = obtenerEnlacesViviendas(urlBusqueda, maxResultados);
         List<Vivienda> viviendas = new ArrayList<>();
         for (String enlace : enlaces) {
-            viviendas.add(extraerVivienda(enlace));
+            Vivienda v = extraerVivienda(enlace);
+            if (v.habitaciones > 0) {
+                viviendas.add(v);
+            }
         }
         return viviendas;
     }
