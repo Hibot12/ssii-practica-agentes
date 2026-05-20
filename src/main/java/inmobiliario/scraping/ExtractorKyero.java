@@ -6,10 +6,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import inmobiliario.modelo.Vivienda;
 
@@ -36,7 +38,27 @@ public class ExtractorKyero {
         vivienda.url = urlVivienda;
         vivienda.titulo = doc.selectFirst("h1").text();
         vivienda.descripcion = doc.selectFirst("meta[name=description]").attr("content");
-        vivienda.imagen = doc.selectFirst("meta[property=og:image]").attr("content");
+
+        for (Element script : doc.select("script[type=application/ld+json]")) {
+            JsonObject json = JsonParser.parseString(script.data()).getAsJsonObject();
+
+            if (json.has("price")) {
+                vivienda.precio = json.get("price").getAsInt();
+            }
+            if (json.has("numberOfBedrooms")) {
+                vivienda.habitaciones = json.get("numberOfBedrooms").getAsInt();
+            }
+            if (json.has("numberOfBathroomsTotal")) {
+                vivienda.banos = json.get("numberOfBathroomsTotal").getAsInt();
+            }
+            if (json.has("floorSize")) {
+                JsonObject tamanyo = json.get("floorSize").getAsJsonObject();
+                vivienda.superficieM2 = tamanyo.get("value").getAsInt();
+            }
+            if (json.has("addressLocality")) {
+                vivienda.ciudad = json.get("addressLocality").getAsString();
+            }
+        }
 
         return vivienda;
     }
