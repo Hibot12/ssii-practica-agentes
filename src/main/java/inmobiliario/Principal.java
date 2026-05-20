@@ -10,15 +10,13 @@ public class Principal {
         ExtractorKyero extractor = new ExtractorKyero();
 
         List<Vivienda> viviendas = extractor.obtenerViviendas(
-                "https://www.kyero.com/en/valencia-property-for-sale-0l53632",
-                5
-        );
+                "https://www.kyero.com/en/spain-property-for-sale-0l55529",
+                5);
 
         for (Vivienda v : viviendas) {
             System.out.println(v.titulo);
             System.out.println("Precio: " + v.precio);
             System.out.println("Habitaciones: " + v.habitaciones + "  Baños: " + v.banos + "  m2: " + v.superficieM2);
-            System.out.println("Ciudad: " + v.ciudad);
             System.out.println(v.url);
             System.out.println();
         }
