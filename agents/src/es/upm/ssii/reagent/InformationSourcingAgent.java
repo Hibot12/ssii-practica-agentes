@@ -10,29 +10,31 @@ import com.google.gson.Gson;
 
 public class InformationSourcingAgent extends Agent {
 
-    private List<Vivienda> viviendas;
+    List<Vivienda> viviendas;
+    CyclicBehaviour comportamiento;
 
-    protected void setup() {
+    public void setup() {
         ExtractorKyero extractor = new ExtractorKyero();
         try {
             viviendas = extractor.cargarViviendas("viviendas.json");
+            System.out.println("Cargadas " + viviendas.size() + " viviendas");
         } catch (Exception e) {
-            System.err.println("InformationSourcingAgent: error cargando viviendas: " + e.getMessage());
-            doDelete();
+            System.out.println("Error al cargar viviendas: " + e.getMessage());
         }
-        System.out.println("InformationSourcingAgent: cargadas " + viviendas.size() + " viviendas");
-        addBehaviour(new CyclicBehaviour(this) {
+        comportamiento = new CyclicBehaviour(this) {
             public void action() {
-                ACLMessage msg = receive();
-                if (msg != null) {
-                    ACLMessage respuesta = msg.createReply();
+                ACLMessage mensaje = receive();
+                if (mensaje != null) {
+                    ACLMessage respuesta = mensaje.createReply();
                     respuesta.setPerformative(ACLMessage.INFORM);
-                    respuesta.setContent(new Gson().toJson(viviendas));
+                    String json = new Gson().toJson(viviendas);
+                    respuesta.setContent(json);
                     send(respuesta);
                 } else {
                     block();
                 }
             }
-        });
+        };
+        addBehaviour(comportamiento);
     }
 }
