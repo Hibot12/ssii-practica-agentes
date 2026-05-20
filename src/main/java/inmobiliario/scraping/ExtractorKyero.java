@@ -41,6 +41,15 @@ public class ExtractorKyero {
         return vivienda;
     }
 
+    public List<Vivienda> obtenerViviendas(String urlBusqueda, int maxResultados) throws Exception {
+        List<String> enlaces = obtenerEnlacesViviendas(urlBusqueda, maxResultados);
+        List<Vivienda> viviendas = new ArrayList<>();
+        for (String enlace : enlaces) {
+            viviendas.add(extraerVivienda(enlace));
+        }
+        return viviendas;
+    }
+
     private String descargarPagina(String url) throws Exception {
         HttpClient cliente = HttpClient.newHttpClient();
         HttpRequest peticion = HttpRequest.newBuilder()

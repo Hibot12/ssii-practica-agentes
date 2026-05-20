@@ -9,15 +9,13 @@ public class Principal {
     public static void main(String[] args) throws Exception {
         ExtractorKyero extractor = new ExtractorKyero();
 
-        List<String> enlaces = extractor.obtenerEnlacesViviendas(
+        List<Vivienda> viviendas = extractor.obtenerViviendas(
                 "https://www.kyero.com/en/valencia-property-for-sale-0l53632",
                 5
         );
 
-        Vivienda v = extractor.extraerVivienda(enlaces.get(0));
-
-        System.out.println(v.titulo);
-        System.out.println(v.descripcion);
-        System.out.println(v.url);
+        for (Vivienda v : viviendas) {
+            System.out.println(v.titulo + " - " + v.url);
+        }
     }
 }
