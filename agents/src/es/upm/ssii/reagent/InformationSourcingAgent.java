@@ -11,10 +11,11 @@ import com.google.gson.Gson;
 public class InformationSourcingAgent extends Agent {
 
     List<Vivienda> viviendas;
+    ExtractorKyero extractor;
     CyclicBehaviour comportamiento;
 
     public void setup() {
-        ExtractorKyero extractor = new ExtractorKyero();
+        extractor = new ExtractorKyero();
         try {
             viviendas = extractor.cargarViviendas("viviendas.json");
             System.out.println("Cargadas " + viviendas.size() + " viviendas");
@@ -25,9 +26,15 @@ public class InformationSourcingAgent extends Agent {
             public void action() {
                 ACLMessage mensaje = receive();
                 if (mensaje != null) {
+                    List<Vivienda> resultado = viviendas;
+                    String contenido = mensaje.getContent();
+                    if (contenido != null && !contenido.isEmpty()) {
+                        FiltroVivienda filtro = new Gson().fromJson(contenido, FiltroVivienda.class);
+                        resultado = extractor.filtrar(viviendas, filtro);
+                    }
                     ACLMessage respuesta = mensaje.createReply();
                     respuesta.setPerformative(ACLMessage.INFORM);
-                    String json = new Gson().toJson(viviendas);
+                    String json = new Gson().toJson(resultado);
                     respuesta.setContent(json);
                     send(respuesta);
                 } else {
