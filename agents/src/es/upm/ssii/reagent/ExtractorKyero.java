@@ -1,8 +1,9 @@
 package es.upm.ssii.reagent;
 
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Type;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,10 +12,15 @@ import com.google.gson.reflect.TypeToken;
 
 public class ExtractorKyero {
 
-    public List<Vivienda> cargarViviendas(String archivo) throws Exception {
-        String json = Files.readString(Path.of(archivo));
+    public List<Vivienda> cargarViviendas() throws Exception {
+        InputStream stream = getClass().getResourceAsStream("viviendas.json");
+        if (stream == null) {
+            throw new Exception("No se ha encontrado viviendas.json");
+        }
         Type tipo = new TypeToken<List<Vivienda>>(){}.getType();
-        return new Gson().fromJson(json, tipo);
+        try (InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+            return new Gson().fromJson(reader, tipo);
+        }
     }
 
     public List<Vivienda> filtrar(List<Vivienda> viviendas, FiltroVivienda filtro) {

@@ -13,6 +13,7 @@ import nodriver as uc
 
 
 BASE_URL = "https://www.kyero.com/en/spain-property-for-sale-0l55529"
+DEFAULT_OUTPUT = Path(__file__).resolve().parents[2] / "agents/src/es/upm/ssii/reagent/viviendas.json"
 RESIDENTIAL_CATEGORY_URLS = [
     "https://www.kyero.com/en/spain-apartments-for-sale-0l55529g1",
     "https://www.kyero.com/en/spain-villas-for-sale-0l55529g2",
@@ -760,7 +761,7 @@ async def run(args) -> int:
 
 def build_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output", default="viviendas.json")
+    parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     parser.add_argument("--max-listings", type=int, default=0)
     parser.add_argument("--max-pages", type=int, default=0)
     parser.add_argument("--start-page", type=int, default=1)

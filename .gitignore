@@ -28,6 +28,3 @@ __pycache__/
 *.pid
 *.err
 .kyero-browser-profile/
-
-# VS Code local settings
-.vscode/

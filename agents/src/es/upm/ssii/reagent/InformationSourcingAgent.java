@@ -2,8 +2,13 @@ package es.upm.ssii.reagent;
 
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.Gson;
@@ -15,11 +20,13 @@ public class InformationSourcingAgent extends Agent {
     CyclicBehaviour comportamiento;
 
     public void setup() {
+        registrarEnDF();
         extractor = new ExtractorKyero();
         try {
-            viviendas = extractor.cargarViviendas("viviendas.json");
+            viviendas = extractor.cargarViviendas();
             System.out.println("Cargadas " + viviendas.size() + " viviendas");
         } catch (Exception e) {
+            viviendas = new ArrayList<>();
             System.out.println("Error al cargar viviendas: " + e.getMessage());
         }
         comportamiento = new CyclicBehaviour(this) {
@@ -43,5 +50,29 @@ public class InformationSourcingAgent extends Agent {
             }
         };
         addBehaviour(comportamiento);
+    }
+
+    private void registrarEnDF() {
+        DFAgentDescription descripcion = new DFAgentDescription();
+        descripcion.setName(getAID());
+
+        ServiceDescription servicio = new ServiceDescription();
+        servicio.setType("information-sourcing");
+        servicio.setName(getLocalName());
+        descripcion.addServices(servicio);
+
+        try {
+            DFService.register(this, descripcion);
+        } catch (FIPAException e) {
+            System.out.println("Error al registrar en DF: " + e.getMessage());
+        }
+    }
+
+    protected void takeDown() {
+        try {
+            DFService.deregister(this);
+        } catch (FIPAException e) {
+            System.out.println("Error al borrar registro del DF: " + e.getMessage());
+        }
     }
 }
