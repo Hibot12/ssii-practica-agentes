@@ -1,4 +1,7 @@
 {
+    "java.project.sourcePaths": [
+        "agents/src"
+    ],
     "java.project.referencedLibraries": [
         "agents/lib/**/*.jar"
     ]
