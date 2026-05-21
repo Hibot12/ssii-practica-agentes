@@ -1,6 +1,7 @@
 package es.upm.ssii.reagent;
 
 import java.util.List;
+import java.util.Map;
 
 public class Vivienda {
     public String id;
@@ -8,6 +9,7 @@ public class Vivienda {
     public String url;
     public String tipo;
     public int precio;
+    public String moneda;
     public int precioM2;
     public int habitaciones;
     public int banos;
@@ -33,5 +35,6 @@ public class Vivienda {
     public boolean cercaPlaya;
     public String imagenPrincipal;
     public List<String> imagenes;
+    public Map<String, List<String>> caracteristicas;
     public String descripcion;
 }
