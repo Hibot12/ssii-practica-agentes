@@ -36,16 +36,49 @@ public class ExtractorKyero {
             if (filtro.superficieMin > 0 && v.superficieM2 < filtro.superficieMin) {
                 cumple = false;
             }
+            if (filtro.superficieMax > 0 && v.superficieM2 > filtro.superficieMax) {
+                cumple = false;
+            }
+            if (filtro.precioM2Min > 0 && v.precioM2 < filtro.precioM2Min) {
+                cumple = false;
+            }
+            if (filtro.precioM2Max > 0 && v.precioM2 > filtro.precioM2Max) {
+                cumple = false;
+            }
+            if (filtro.distanciaAeropuertoMax > 0 && v.distanciaAeropuertoKm > filtro.distanciaAeropuertoMax) {
+                cumple = false;
+            }
+            if (filtro.tipo != null && !v.tipo.equalsIgnoreCase(filtro.tipo)) {
+                cumple = false;
+            }
             if (filtro.ciudad != null && !v.ciudad.equalsIgnoreCase(filtro.ciudad)) {
                 cumple = false;
             }
             if (filtro.provincia != null && !v.provincia.equalsIgnoreCase(filtro.provincia)) {
                 cumple = false;
             }
+            if (filtro.zona != null && !v.zona.equalsIgnoreCase(filtro.zona)) {
+                cumple = false;
+            }
             if (filtro.tienePiscina && !v.tienePiscina) {
                 cumple = false;
             }
             if (filtro.tieneParking && !v.tieneParking) {
+                cumple = false;
+            }
+            if (filtro.tieneTerraza && !v.tieneTerraza) {
+                cumple = false;
+            }
+            if (filtro.tieneJardin && !v.tieneJardin) {
+                cumple = false;
+            }
+            if (filtro.aireAcondicionado && !v.aireAcondicionado) {
+                cumple = false;
+            }
+            if (filtro.amueblado && !v.amueblado) {
+                cumple = false;
+            }
+            if (filtro.cercaPlaya && !v.cercaPlaya) {
                 cumple = false;
             }
             if (cumple) {
