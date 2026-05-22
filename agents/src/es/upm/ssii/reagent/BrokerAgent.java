@@ -9,9 +9,14 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
 
 public class BrokerAgent extends Agent {
     protected void setup() {
+        registrarEnDF();
         System.out.println("[" + getLocalName() + "]: Broker Orquestador activado.");
 
         // Esperamos un INFORM como respuesta del InformationSourcingAgent.
@@ -46,6 +51,30 @@ public class BrokerAgent extends Agent {
         send(peticion);
     }
 
+     private void registrarEnDF() {
+        DFAgentDescription descripcion = new DFAgentDescription();
+        descripcion.setName(getAID());
+
+        ServiceDescription servicio = new ServiceDescription();
+        servicio.setType("broker");
+        servicio.setName(getLocalName());
+        descripcion.addServices(servicio);
+
+        try {
+            DFService.register(this, descripcion);
+        } catch (FIPAException e) {
+            System.out.println("[Broker] Error al registrar en DF: " + e.getMessage());
+        }
+    }
+
+    protected void takeDown() {
+        try {
+            DFService.deregister(this);
+        } catch (FIPAException e) {
+            System.out.println("[Broker] Error al borrar registro del DF: " + e.getMessage());
+        }
+    }
+
     private void imprimirLista(ACLMessage listaViviendas) {
         try {
             // Parseamos el texto y lo convertimos a un Array de JSON
@@ -65,7 +94,7 @@ public class BrokerAgent extends Agent {
             }
 
         } catch (Exception e) {
-            System.out.println("Error al procesar la lista JSON: " + e.getMessage());
+            System.out.println("[Broker] Error al procesar la lista JSON: " + e.getMessage());
         }
     }
 }
