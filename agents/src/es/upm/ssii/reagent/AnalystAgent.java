@@ -267,6 +267,65 @@ public class AnalystAgent  extends Agent{
 
         }
 
+        //los metodos helpers
+
+        private void sendReply(ACLMessage original, String content){
+            //esto genera una plantilla de respuesta
+            ACLMessage reply = original.createReply();
+            //esto establece la intencion del mensaje
+            reply.setPerformative(ACLMessage.INFORM);
+            //esto mete el sello metadato de la ontologia inmobiliaria obligatoria
+            reply.setOntology(ONTOLOGY);
+            //y ahora cargamos la cadena de texto con los resultados en el cuerpo del mensaje
+            reply.setContent(content);
+            send(reply);
+
+        }
+
+        private String buildEmptyResponse() { 
+            JSONObject r = new JSONObject(); 
+            //esto Añade una lista vacia para evitar fallos de lectura en el Broker
+            r.put("resultados", new JSONArray()); 
+            r.put("total", 0); 
+            r.put("ofertas", 0);
+            r.put("normales", 0); 
+            r.put("paraReformar", 0); 
+            r.put("descartados", 0); 
+            return r.toString(); //esto devuelve la cadena JSON serializada de seguridad
+        } 
+
+        //este es el adaptador para traducir el modelo Gson a objetos dinámicos de org.json
+        private JSONObject viviendaToJSON(Vivienda v) { 
+            JSONObject j = new JSONObject(); 
+            j.put("id", v.id != null ? v.id : "unknown"); 
+            j.put("precio", v.precio);
+            j.put("precioM2", v.precioM2); 
+            j.put("superficieM2", v.superficieM2);
+            j.put("ciudad", v.ciudad != null ? v.ciudad : ""); 
+            j.put("zona", v.zona != null ? v.zona : ""); 
+            j.put("habitaciones", v.habitaciones);
+            j.put("banos", v.banos); 
+            j.put("tienePiscina", v.tienePiscina); 
+            j.put("tieneTerraza", v.tieneTerraza); 
+            j.put("cercaPlaya", v.cercaPlaya); 
+            j.put("distanciaAeropuertoKm", (double) v.distanciaAeropuertoKm); 
+            j.put("descripcion", v.descripcion != null ? v.descripcion : ""); 
+            return j; 
+        } 
+        
+        //esto es el escaner de texto para extraer la clase final del bloque RDF/TTL
+        private String extractClassFromTTL(String ttl, String id) { 
+            //esto construye el patron que buscamos exacto de la tripleta semantica por ejemplo( ":123 rdf:type ")
+            String prefix = ":" + id + " rdf:type "; 
+            int start = ttl.indexOf(prefix);
+            if (start < 0) return ":Vivienda"; 
+            int classStart = start + prefix.length(); 
+            int classEnd = ttl.indexOf(' ', classStart); 
+            if (classEnd < 0) classEnd = ttl.indexOf(';', classStart)
+            if (classEnd < 0) return ":Vivienda"; 
+            return ttl.substring(classStart, classEnd).trim();
+        } 
+
     }
 
 
