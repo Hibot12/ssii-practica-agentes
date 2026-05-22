@@ -117,4 +117,115 @@ public class AnalystAgent  extends Agent{
     return null;
    } 
 
+    //esto es el comportamiento principal
+    //un bucle continuo para procesar los comandos del broker
+    private class HandleRequests extends CyclicBehaviour{
+        //el filtro bloquante: es el Patrón de máscara para capturar solo mensajes REQUEST con la ontología correcta
+        //solo acepta comunicaciones Request y solo mensajes que coincidan con la ontologia de la imobilaria
+        private final MessageTemplate filter = MessageTemplate.and(MessageTemplate.MatchPerformative(ACLMessage.REQUEST), MessageTemplate.MatchOntology(ONTOLOGY));
+
+        //esto es la tarea ejecutada continuamente por el planificador de JADE
+        @Override
+        public void action(){
+            //ectraemos el primer mensaje de la cola que cumple los requisitos del filtro
+            ACLMessage request = myAgent.receive(filter);
+            
+            if(request != null){
+                //extraemos la carga util del mensaje que contiene los filtros en JSON
+                String filterJson = request.getContent();
+                System.out.println("AnalystAgent: Request de " + request.getSender().getLocalName());
+                //Invocamos la funcion intermedia para solicitar datos al informador
+                List<Vivienda> viviendas = fetchViviendas(filterJson);
+                //comprobamos que no este vacia
+                if(viviendas == null || viviendas.isEmpty()){
+                    //enviamos un mensaje estructurada vacia para no romber el broker
+                    System.out.println("AnalystAgent: No hay viviendas para analizar");
+                    return;
+                }
+
+                System.out.println("AnalystAgent: Analizando " viviendas.size() + " viviendas...");
+                //una lista vacia para acumular los JSON resumen individuales
+                JSONArray resultsArray = new JSONArray();
+                //y ahora para acumular el código RDF/TTL
+                StringBuilder allTTL = new StringBuilder();
+
+                //añade las cabeceras estandar de prefijos y ontologías RDF
+                allTTL.append("@prefix : <http://www.ssii.upm.es/inmobliaria#> .\n"); // Prefijo del dominio base de la práctica
+                allTTL.append("@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"); // Prefijo estándar de tipos RDF
+                allTTL.append("@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\n"); // Prefijo estándar de tipos de datos numéricos
+
+                int ofertas = 0;
+                int normales = 0;
+                int reforma = 0;
+                int descartados = 0;
+
+                for(Vivienda v: viviendas){
+                    try{
+                        //la Prediccion con el modelo de aprendizaje automatico de Weka
+                        //Obtiene la clase inicial basada en atributos numericos
+                        String prediccionWeka = clasificador.clasificar(v); 
+
+                        //ahora hacemos el refinamiento mediante PLN basado en el texto de la descripcion de la vivienda
+                        //esto convierte el modelo al formato JSON dinamico requerido
+                        JSONObject viviendaJson = viviendaToJSON(v);
+                        //ahora procesamos el texto y generamos el fragmento RDF/TTL final
+                        String ttlSnippet = procesadorTexto.procesarVivienda(viviendaJson, prediccionWeka)
+
+
+                        //ahora la resolucion de la clase final (por ej el procesador de texto puede haber anulado a Weka)
+                        String claseFinal = extractClassFromTTL(ttlSnippet, v.id); //extraemos la etiqueta de clase real del RDF generado
+                        //concatenamos el fragmento de codigo al documento global
+                        allTTL.append(ttlSnippet);
+                        //ahora hacemos la clasificacion final del analisis combinado
+                        if(claseFinal.contains("Oferta")){
+                            ofertas++;
+                        }else if(claseFinal.contains("ParaReformar")){
+                            reforma++;
+                        }else if(claseFinal.contains("Descartado")){
+                            descartados++;
+                        }else{
+                            normales++;
+                        }
+
+                        //ahora hacemos la construccion de la entrada de los resultados en formato JSON para el Broker
+                        JSONObject result = new JSONObject();
+                        result.put("id", v.id);
+                        result.put("titulo", v.titulo != null ? v.titulo : "");
+                        result.put("ciudad", v.ciudad != null ? v.ciudad : "");
+                        result.put("zona", v.zona != null ? v.zona : "");
+                        result.put("precio", v.precio);
+                        result.put("precioM2", v.precioM2);
+                        result.put("superficieM2", v.superficieM2);
+                        result.put("habitaciones", v.habitaciones);
+                        result.put("banos", v.banos);
+                        result.put("prediccionWeka", prediccionWeka);
+                        result.put("claseFinal", claseFinal); //registra la clasificacion original que dio weka
+                        result.put("puntuacionNLP", procesadorTexto.calcularPuntuacionNLP(v.descripcion)); //esto calcula y guarda los puntos de palabras clave
+
+                        resultsArray.put(result);
+                    }catch(Exception e){
+                        System.err.println("AnalysisAgent: Error en " + v.id + ":" + e.getMessage());
+                    }
+                }
+                System.out.println("AnalysisAgent: Acabado: %d Ofertas, %d Viviendas, %d ParaReformar, %d Descartados%n", ofertas, normales, reforma, descartados);
+
+                JSONObject response = new JSONObject();
+                response.put("resultados", resultsArray);
+                response.put("total", viviendas.size());
+                response.put("ofertas", ofertas);
+                response.put("normales", normales);
+                response.put("paraReformar", reforma);
+                response.put("descartados", descartados);
+                response.put("ttlCompleto", allTTL.toString());
+                //Enviamos la respuesta masiva formateada directamente de vuelta al Broker
+                sendReply(request, respone.toString());
+
+            }else{
+                //esto es el filtro bloqueante,que duerme el comportamiento para evitar bucles que saturen la cpu
+                block();
+            }
+        }
+    }
+
+
 }
