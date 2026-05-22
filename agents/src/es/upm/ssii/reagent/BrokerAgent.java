@@ -13,63 +13,92 @@ import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.core.behaviours.FSMBehaviour;
+import jade.core.behaviours.OneShotBehaviour;
 
 public class BrokerAgent extends Agent {
 
-    private static final int WAITING_UI = 1;
-    private static final int WAITING_SOURCING = 2;
-    private static final int WAITING_ANALISTA = 3;
+    // Identificadores de los Estados de la FSM
+    private static final String ESTADO_ESPERAR_UI = "ESPERAR_UI";
+    private static final String ESTADO_ESPERAR_SOURCING = "ESPERAR_SOURCING";
+    private static final String ESTADO_ESPERAR_ANALISTA = "ESPERAR_ANALISTA";
 
-    private int fase = WAITING_UI;
+    // Esperamos un REQUEST del UIAgent.
+    private MessageTemplate filtroUI = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
+    // Esperamos un INFORM como respuesta del InformationSourcingAgent.
+    private MessageTemplate filtroMensajeViviendas = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
 
     protected void setup() {
         registrarEnDF();
         System.out.println("[" + getLocalName() + "]: Broker Orquestador activado.");
 
-        // Esperamos un REQUEST del UIAgent.
-        MessageTemplate filtroUI = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
-        // Esperamos un INFORM como respuesta del InformationSourcingAgent.
-        MessageTemplate filtroMensajeViviendas = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+        // Instanciamos el contenedor de la máquina de estados.
+        FSMBehaviour fsm = new FSMBehaviour(this);
 
-        CyclicBehaviour comportamiento = new CyclicBehaviour(this) {
-            public void action() {
+        // Registrar los estados individuales con sus comportamientos.
+        fsm.registerFirstState(new EsperarUIBehaviour(), ESTADO_ESPERAR_UI);
+        fsm.registerState(new EsperarSourcingBehaviour(), ESTADO_ESPERAR_SOURCING);
+        fsm.registerState(new EsperarAnalistaBehaviour(), ESTADO_ESPERAR_ANALISTA);
 
-                if (fase == WAITING_UI) {
-                    System.out.println("[Broker] Esperando interacción en la UI...");
+        // Definición de transiciones.
+        // Cada estado devuelve siempre 1 al terminar con éxito para avanzar al siguiente
+        fsm.registerTransition(ESTADO_ESPERAR_UI, ESTADO_ESPERAR_SOURCING, 1);
+        fsm.registerTransition(ESTADO_ESPERAR_SOURCING, ESTADO_ESPERAR_ANALISTA, 1);
+        fsm.registerTransition(ESTADO_ESPERAR_ANALISTA, ESTADO_ESPERAR_UI, 1);
 
-                    // Bloquea hasta que llegue filtro de la UI.
-                    ACLMessage mensajeUI = blockingReceive(filtroUI);
+        // Lanzamos la FSM
+        addBehaviour(fsm);
+    }
 
-                    System.out.println("[Broker] Petición de la UI recivida");
+    public class EsperarUIBehaviour extends OneShotBehaviour {
+        public void action() {
+            System.out.println("[Broker] Esperando interacción en la UI...");
 
-                    // Forwarding del mensaje hacia SourcingAgent.
-                    String jsonFiltroRecibido = mensajeUI.getContent();
-                    ACLMessage peticionSourcing = new ACLMessage(ACLMessage.REQUEST);
-                    peticionSourcing.addReceiver(new AID("sourcing", AID.ISLOCALNAME));
-                    peticionSourcing.setContent(jsonFiltroRecibido);
+            // Bloquea hasta que llegue filtro de la UI.
+            ACLMessage mensajeUI = blockingReceive(filtroUI);
 
-                    send(peticionSourcing);
-                    System.out.println("[Broker] Filtro enviado a SourcingAgent");
+            System.out.println("[Broker] Petición de la UI recivida");
 
-                    // Transición al estado de espera del recopilador
-                    fase = WAITING_SOURCING;
-                }
+            // Forwarding del mensaje hacia SourcingAgent.
+            String jsonFiltroRecibido = mensajeUI.getContent();
+            ACLMessage peticionSourcing = new ACLMessage(ACLMessage.REQUEST);
+            peticionSourcing.addReceiver(new AID("sourcing", AID.ISLOCALNAME));
+            peticionSourcing.setContent(jsonFiltroRecibido);
 
-                else if (fase == WAITING_SOURCING) {    
-                    ACLMessage listaViviendas = blockingReceive(filtroMensajeViviendas);
+            send(peticionSourcing);
+            System.out.println("[Broker] Filtro enviado a SourcingAgent");
+        }
 
-                    if (listaViviendas != null) {
-                        System.out.println("[Broker] Respuesta recibida del Recopilador");
-                        imprimirLista(listaViviendas);
+        public int onEnd() {
+            return 1;
+        }
+    }
 
-                        // TO DO: Gestionar comunicación con analista.
-                        fase = WAITING_ANALISTA;
-                    }
-                }
+    public class EsperarSourcingBehaviour extends OneShotBehaviour {
+        public void action() {
+            ACLMessage listaViviendas = blockingReceive(filtroMensajeViviendas);
 
+            if (listaViviendas != null) {
+                System.out.println("[Broker] Respuesta recibida del Recopilador");
+                imprimirLista(listaViviendas);
+
+                // TO DO: Gestionar comunicación con analista.
             }
-        };
-        addBehaviour(comportamiento);
+        }
+
+        public int onEnd() {
+            return 1;
+        }
+    }
+
+    public class EsperarAnalistaBehaviour extends OneShotBehaviour {
+        public void action() {
+
+        }
+
+        public int onEnd() {
+            return 1;
+        }
     }
 
     private void registrarEnDF() {
