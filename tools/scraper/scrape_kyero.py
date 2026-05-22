@@ -12,13 +12,13 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 import nodriver as uc
 
 
-BASE_URL = "https://www.kyero.com/en/spain-property-for-sale-0l55529"
-DEFAULT_OUTPUT = Path(__file__).resolve().parents[2] / "agents/src/es/upm/ssii/reagent/viviendas.json"
+BASE_URL = "https://www.kyero.com/es/espana-propiedad-en-venta-0l55529"
+DEFAULT_OUTPUT = Path(__file__).resolve().parents[2] / "agents/src/es/upm/ssii/reagent/viviendas_es.json"
 RESIDENTIAL_CATEGORY_URLS = [
-    "https://www.kyero.com/en/spain-apartments-for-sale-0l55529g1",
-    "https://www.kyero.com/en/spain-villas-for-sale-0l55529g2",
-    "https://www.kyero.com/en/spain-town-houses-for-sale-0l55529g3",
-    "https://www.kyero.com/en/spain-country-houses-for-sale-0l55529g4",
+    "https://www.kyero.com/es/espana-apartamentos-en-venta-0l55529g1",
+    "https://www.kyero.com/es/espana-villas-en-venta-0l55529g2",
+    "https://www.kyero.com/es/espana-casas-adosadas-en-venta-0l55529g3",
+    "https://www.kyero.com/es/espana-casas-de-campo-en-venta-0l55529g4",
 ]
 TILE_SELECTOR = 'a[data-testid="property-tile"]'
 NON_RESIDENTIAL_URLS = (
@@ -28,9 +28,14 @@ NON_RESIDENTIAL_URLS = (
     "commercial-for-sale",
     "business-for-sale",
     "garage-for-sale",
+    "terreno-en-venta",
+    "parcela-en-venta",
+    "propiedad-comercial",
+    "negocio-en-venta",
+    "garaje-en-venta",
 )
 NON_RESIDENTIAL_TEXT = re.compile(
-    r"\b(land|plot|commercial|business|garage)\b",
+    r"\b(land|plot|commercial|business|garage|terreno|parcela|comercial|negocio|garaje)\b",
     re.IGNORECASE,
 )
 
@@ -195,16 +200,16 @@ def normalize_url(url: str) -> str:
 
 def property_type(title: str, breadcrumbs: list[str]) -> str:
     for crumb in reversed(breadcrumbs):
-        if crumb.lower().endswith(" for sale"):
-            return clean_text(re.sub(r"\s+for sale$", "", crumb, flags=re.IGNORECASE))
+        if crumb.lower().endswith((" for sale", " en venta")):
+            return clean_text(re.sub(r"\s+(for sale|en venta)$", "", crumb, flags=re.IGNORECASE))
 
-    match = re.search(r"^(.+?)\s+in\s+", title, re.IGNORECASE)
+    match = re.search(r"^(.+?)\s+(in|en)\s+", title, re.IGNORECASE)
     return clean_text(match.group(1)) if match else ""
 
 
 def location_parts(breadcrumbs: list[str], city: str, province: str) -> dict[str, str]:
-    parts = [part for part in breadcrumbs if part and part.lower() != "home"]
-    if parts and parts[-1].lower().endswith(" for sale"):
+    parts = [part for part in breadcrumbs if part and part.lower() not in {"home", "hogar"}]
+    if parts and parts[-1].lower().endswith((" for sale", " en venta")):
         parts.pop()
 
     zone = ""
@@ -237,7 +242,7 @@ def unique_texts(values) -> list[str]:
 
 def split_feature_values(value: str) -> list[str]:
     value = re.sub(
-        r"\s+(Rooms|Other|Heating|Utilities|Views|Kitchen|Bathroom|Security):",
+        r"\s+(Rooms|Other|Heating|Utilities|Views|Kitchen|Bathroom|Security|Habitaciones|Otros|Calefacción|Utilidades|Vistas|Cocina|Baño|Seguridad):",
         r", \1:",
         value,
     )
@@ -247,15 +252,25 @@ def split_feature_values(value: str) -> list[str]:
 def parse_features(items: list[str]) -> dict[str, list[str]]:
     labels = [
         ("Energy & utilities", "utilities"),
+        ("Energía & utilidades", "utilities"),
         ("Interior features", "interior"),
+        ("Características interiores", "interior"),
         ("Location", "location"),
+        ("Ubicación", "location"),
         ("Outside", "outside"),
+        ("Fuera", "outside"),
         ("Parking", "parking"),
+        ("Estacionamiento", "parking"),
         ("Quality", "quality"),
+        ("Calidad", "quality"),
         ("Leisure", "leisure"),
+        ("Ocio", "leisure"),
         ("Security", "security"),
+        ("Seguridad", "security"),
         ("Views", "views"),
+        ("Vistas", "views"),
         ("Pool", "pool"),
+        ("Piscina", "pool"),
     ]
 
     features: dict[str, list[str]] = {}
@@ -278,12 +293,17 @@ def price_m2(price: int, area: int) -> int:
 
 def nearest_airport(text: str, city: str) -> dict[str, Any]:
     text = clean_text(text)
-    heading = f"Airports near the centre of {city}"
-    if city and text.lower().startswith(heading.lower()):
-        text = clean_text(text[len(heading) :])
+    headings = [
+        f"Airports near the centre of {city}",
+        f"Aeropuertos cerca del centro de {city}",
+    ]
+    for heading in headings:
+        if city and text.lower().startswith(heading.lower()):
+            text = clean_text(text[len(heading) :])
+            break
 
     matches = re.findall(
-        r"([A-Za-zÀ-ÿ' .-]+?\s+airport),\s*(\d+)\s*km",
+        r"([A-Za-zÀ-ÿ' .-]*(?:airport|Aeropuerto)[A-Za-zÀ-ÿ' .-]*),\s*(\d+)\s*km",
         text,
         re.IGNORECASE,
     )
@@ -315,8 +335,18 @@ def agent_name(text: str) -> str:
     text = clean_text(text)
     if text.startswith("Agent information "):
         text = text[len("Agent information ") :]
+    if text.startswith("Información del agente "):
+        text = text[len("Información del agente ") :]
 
-    for marker in (" English spoken", " More about", " Request more information"):
+    for marker in (
+        " English spoken",
+        " More about",
+        " Request more information",
+        " Habla ",
+        " Más información",
+        " Solicitar más información",
+        " Las visitas",
+    ):
         index = text.find(marker)
         if index > 0:
             return clean_text(text[:index])
@@ -330,13 +360,13 @@ def feature_flags(features: dict[str, list[str]]) -> dict[str, bool]:
         for value in values
     )
     return {
-        "tienePiscina": "pool" in text,
-        "tieneParking": "parking" in text or "garage" in text,
-        "tieneTerraza": "terrace" in text or "solarium" in text,
-        "tieneJardin": "garden" in text,
-        "aireAcondicionado": "air conditioning" in text,
-        "amueblado": "furnished" in text,
-        "cercaPlaya": "near beach" in text or "close to beach" in text,
+        "tienePiscina": "pool" in text or "piscina" in text,
+        "tieneParking": "parking" in text or "garage" in text or "estacionamiento" in text or "garaje" in text,
+        "tieneTerraza": "terrace" in text or "solarium" in text or "terraza" in text,
+        "tieneJardin": "garden" in text or "jardín" in text or "jardin" in text,
+        "aireAcondicionado": "air conditioning" in text or "aire acondicionado" in text,
+        "amueblado": ("furnished" in text or "amueblado" in text) and "unfurnished" not in text and "sin amueblar" not in text,
+        "cercaPlaya": "near beach" in text or "close to beach" in text or "cerca de la playa" in text,
     }
 
 
@@ -363,12 +393,39 @@ async def read_json(tab, script: str) -> Any:
     return json.loads(result)
 
 
+async def wait_page_loaded(tab) -> bool:
+    script = """
+    (() => JSON.stringify({
+      url: location.href,
+      title: document.title,
+      mainLength: document.querySelector("main")?.innerText?.length || 0
+    }))()
+    """
+
+    for _ in range(20):
+        try:
+            state = await read_json(tab, script)
+        except Exception:
+            state = None
+
+        if (
+            isinstance(state, dict)
+            and "/captcha/" not in state.get("url", "")
+            and not state.get("title", "").startswith("Just a moment")
+            and state.get("mainLength", 0) > 0
+        ):
+            return True
+        await tab.sleep(1)
+
+    return False
+
+
 async def accept_cookies(tab) -> None:
     script = r"""
     (() => {
       const buttons = Array.from(document.querySelectorAll('button, a, [role="button"]'));
-      const accept = /(accept|agree|allow all|allow cookies|got it|ok)/i;
-      const reject = /(reject|decline|settings|preferences|manage|customize)/i;
+      const accept = /(accept|agree|allow all|allow cookies|got it|ok|aceptar|permitir|de acuerdo)/i;
+      const reject = /(reject|decline|settings|preferences|manage|customize|rechazar|configuraci[oó]n|preferencias)/i;
 
       for (const button of buttons) {
         const text = (button.innerText || button.textContent || button.ariaLabel || button.value || '').trim();
@@ -429,14 +486,16 @@ async def scrape_property(browser, url: str) -> dict[str, Any] | None:
     tab = await browser.get(url)
     await tab.sleep(0.7)
     await accept_cookies(tab)
+    if not await wait_page_loaded(tab):
+        return None
 
     script = """
     (() => {
       const clean = (value) => (value || "").replace(/\\s+/g, " ").trim();
       const unique = (values) => Array.from(new Set(values.map(clean).filter(Boolean)));
       const mainText = document.querySelector("main")?.innerText || "";
-      const referenceMatch = mainText.match(/Property reference:\\s*([^\\n]+?)(?:\\s+You might also like|\\s+Receive property|$)/i);
-      const addedMatch = mainText.match(/Added\\s+(?:today|yesterday|\\d+\\s+\\w+\\s+ago)/i);
+      const referenceMatch = mainText.match(/(?:Property reference|Referencia de la propiedad):\\s*([^\\n]+?)(?:\\s+You might also like|\\s+También te puede interesar|\\s+Receive property|$)/i);
+      const addedMatch = mainText.match(/(?:Added\\s+(?:today|yesterday|\\d+\\s+\\w+\\s+ago)|Añadid[oa]\\s+(?:hoy|ayer|hace\\s+(?:(?:alrededor|más|menos)\\s+de\\s+)?\\d+\\s+[^\\s]+))/i);
 
       return JSON.stringify({
         titulo: clean(document.querySelector("h1")?.innerText),
@@ -597,6 +656,19 @@ def url_keys(url: str) -> set[str]:
     return keys
 
 
+def spanish_property_url(vivienda: dict[str, Any]) -> str:
+    url = clean_text(vivienda.get("url"))
+    if "/en/property/" in url:
+        return url.replace("/en/property/", "/es/property/", 1)
+    if "/es/property/" in url:
+        return url
+
+    id_value = clean_text(vivienda.get("id"))
+    if id_value:
+        return f"https://www.kyero.com/es/property/{id_value}"
+    return ""
+
+
 def remove_duplicates(viviendas: list[dict[str, Any]]) -> list[dict[str, Any]]:
     seen = set()
     result = []
@@ -636,6 +708,57 @@ async def enrich_descriptions(browser, output_path: Path, viviendas, args) -> No
             save_viviendas(output_path, viviendas)
 
 
+async def scrape_existing(browser, output_path: Path, args) -> None:
+    original = remove_duplicates(load_viviendas(Path(args.from_existing)))
+    viviendas = remove_duplicates(load_viviendas(output_path)) if args.resume else []
+    seen = set()
+    for vivienda in viviendas:
+        seen.update(vivienda_keys(vivienda))
+
+    print(f"[existing] {len(original)} viviendas de entrada", flush=True)
+    print(f"[existing] {len(viviendas)} viviendas ya guardadas", flush=True)
+
+    for item in original:
+        if args.max_listings > 0 and len(viviendas) >= args.max_listings:
+            break
+
+        keys = vivienda_keys(item)
+        if keys and keys & seen:
+            continue
+
+        url = spanish_property_url(item)
+        if not url:
+            continue
+
+        await asyncio.sleep(random.uniform(args.min_delay, args.max_delay))
+        print(f"[property] {len(viviendas) + 1}/{len(original)} {url}", flush=True)
+
+        vivienda = None
+        for attempt in range(3):
+            vivienda = await scrape_property(browser, url)
+            if vivienda is not None:
+                break
+            if attempt < 2:
+                print(f"[property] reintento {attempt + 1}: {url}", flush=True)
+                await asyncio.sleep(10 + attempt * 10)
+
+        if vivienda is None:
+            print("[property] descartada", flush=True)
+            continue
+
+        keys = vivienda_keys(vivienda)
+        if keys & seen:
+            print("[property] repetida", flush=True)
+            continue
+
+        viviendas.append(vivienda)
+        seen.update(keys)
+        save_viviendas(output_path, viviendas)
+
+    save_viviendas(output_path, viviendas)
+    print(f"[done] guardadas {len(viviendas)} viviendas en {output_path}", flush=True)
+
+
 async def close_browser(browser) -> None:
     try:
         await browser.aclose()
@@ -657,7 +780,7 @@ async def run(args) -> int:
         headless=not args.headed,
         browser_executable_path=browser_path,
         user_data_dir=str(profile_path),
-        lang="en-US",
+        lang="es-ES",
         browser_args=[
             "--disable-blink-features=AutomationControlled",
             "--window-size=1365,900",
@@ -678,6 +801,10 @@ async def run(args) -> int:
             await enrich_descriptions(browser, output_path, viviendas, args)
             if args.enrich_only:
                 return 0
+
+        if args.from_existing:
+            await scrape_existing(browser, output_path, args)
+            return 0
 
         sources = args.search_url or [BASE_URL]
         if args.residential_categories:
@@ -766,6 +893,7 @@ def build_parser():
     parser.add_argument("--max-pages", type=int, default=0)
     parser.add_argument("--start-page", type=int, default=1)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--from-existing")
     parser.add_argument("--enrich-descriptions", action="store_true")
     parser.add_argument("--enrich-only", action="store_true")
     parser.add_argument("--description-limit", type=int, default=0)
