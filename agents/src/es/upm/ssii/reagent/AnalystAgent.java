@@ -95,4 +95,26 @@ public class AnalystAgent  extends Agent{
         System.err.println("AnaystAgent: DF error: "+ e.getMessage());
     }
    }
+
+   //buscador dinamico del agente de datos
+   private AID findInformationAgent(){
+    DFAgentDescription template = new DFAgentDescription();
+    ServiceDescription sd = new ServiceDescription();
+    sd.setType(INFO_SERVICE);
+    //añadimos el filtro de servicio a la plantilla de de busqueda general
+    template.addServices(sd)
+    try{
+        //realiza la busqueda en el DF de JADe
+        DFAgentDescription[] results = DFService.search(this, template)
+        if(results.length > 0){
+            //extrae el identificador AID del primer proveedor disponible
+            results[0].getName();
+        }
+    }catch(FIPAException e){
+        Sytem.err.println("AnalystAgent: DF error de busqueda: "+ e.getMessage());
+    }
+    System.out.println("AnalystAgent: InformationSourcingAgent no encontrado en el DF");
+    return null;
+   } 
+
 }
