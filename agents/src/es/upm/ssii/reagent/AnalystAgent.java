@@ -225,7 +225,51 @@ public class AnalystAgent  extends Agent{
                 block();
             }
         }
+
+        //la comunicacion intermedia con el agente informador
+        private List<Vivienda> fetchViviendas(String filterJson){
+            //esto busca el DF dinamicamente para localizar la direccion del informador 
+            AID infoAgent = findInformationAgent();
+            if(infoAgent == null){
+                return new ArrayList<>(); //devolvemos una lista vacia
+            }
+
+            ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
+            msg.addReceiver(infoAgent);
+            //esto añade un ID de conversacion usando el reloj del sistema
+            msg.setConversationId("anayst-query-" + System.currentTimeMillis());
+            //esto carga los criterios de filtrado JSON o texto vacio si es nulo
+            msg.setContent(filterJson != null ? filterJson : "");
+            send(msg);
+
+            System.out.println("AnalystAgent: Query enviado a " + infoAgent.getLocalName()+ ", esperando por la respuesta....");
+            //ahora hacemos el filtro para interceptar unicamente la respuesta relacionada con esta sesion de conversacion
+            MessageTemplate replyFilter = MessageTemplate.MatchConversationId(msg.getConversationId());
+            //bloqueamos el hilo y esperamos hasta 30 segundos
+            ACLMessage reply = blockingReceive(replyFilter, 30000);
+            //ahora en el caso de que se agota el tiempo
+            if(reply == null){
+                System.out.println("AnalystAgent: Timeout, esperando para los datos");
+                //y devolvemos el array vacio para que no da error
+                return new ArrayList<>();
+            }
+
+            try{
+                //Aplicamos reflexion para definir la firma generica List<Vivienda>
+                Type listType = new TypeToken<List<Vivienda>>(){}.getType();
+                List<Vivienda> result = gson.fromJson(reply.getContent(), listType); //esto desearaliza la cadena de JSON
+                System.out.println("AnaystAgent: Recibido " + result.size() + "propiedades");
+                return result;
+            }catch(Exception e){
+                System.err.println("AnalystAgent: Parse error - " + e.getMessage());
+                return new ArrayList<>();
+            }
+
+        }
+
     }
+
+
 
 
 }
