@@ -15,43 +15,64 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 
 public class BrokerAgent extends Agent {
+
+    private static final int WAITING_UI = 1;
+    private static final int WAITING_SOURCING = 2;
+    private static final int WAITING_ANALISTA = 3;
+
+    private int fase = WAITING_UI;
+
     protected void setup() {
         registrarEnDF();
         System.out.println("[" + getLocalName() + "]: Broker Orquestador activado.");
 
+        // Esperamos un REQUEST del UIAgent.
+        MessageTemplate filtroUI = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
         // Esperamos un INFORM como respuesta del InformationSourcingAgent.
         MessageTemplate filtroMensajeViviendas = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
 
         CyclicBehaviour comportamiento = new CyclicBehaviour(this) {
             public void action() {
-                ACLMessage listaViviendas = blockingReceive(filtroMensajeViviendas);
 
-                if (listaViviendas != null) {
-                    System.out.println("[Broker] Respuesta recibida del Recopilador");
-                    System.out.println("[Resultado del Filtrado JSON]:");
-                    imprimirLista(listaViviendas);
+                if (fase == WAITING_UI) {
+                    System.out.println("[Broker] Esperando interacción en la UI...");
+
+                    // Bloquea hasta que llegue filtro de la UI.
+                    ACLMessage mensajeUI = blockingReceive(filtroUI);
+
+                    System.out.println("[Broker] Petición de la UI recivida");
+
+                    // Forwarding del mensaje hacia SourcingAgent.
+                    String jsonFiltroRecibido = mensajeUI.getContent();
+                    ACLMessage peticionSourcing = new ACLMessage(ACLMessage.REQUEST);
+                    peticionSourcing.addReceiver(new AID("sourcing", AID.ISLOCALNAME));
+                    peticionSourcing.setContent(jsonFiltroRecibido);
+
+                    send(peticionSourcing);
+                    System.out.println("[Broker] Filtro enviado a SourcingAgent");
+
+                    // Transición al estado de espera del recopilador
+                    fase = WAITING_SOURCING;
                 }
+
+                else if (fase == WAITING_SOURCING) {    
+                    ACLMessage listaViviendas = blockingReceive(filtroMensajeViviendas);
+
+                    if (listaViviendas != null) {
+                        System.out.println("[Broker] Respuesta recibida del Recopilador");
+                        imprimirLista(listaViviendas);
+
+                        // TO DO: Gestionar comunicación con analista.
+                        fase = WAITING_ANALISTA;
+                    }
+                }
+
             }
         };
         addBehaviour(comportamiento);
-
-        // Filtro estático.
-        FiltroVivienda filtroEstatico = new FiltroVivienda();
-        filtroEstatico.tipo = "Apartment";
-        filtroEstatico.habitacionesMin = 3;
-        filtroEstatico.tienePiscina = true;
-        String jsonFiltro = new Gson().toJson(filtroEstatico);
-
-        // Enviamos petición.
-        ACLMessage peticion = new ACLMessage(ACLMessage.REQUEST);
-        peticion.addReceiver(new AID("sourcing", AID.ISLOCALNAME));
-        peticion.setContent(jsonFiltro);
-
-        System.out.println("[Broker] Enviando Filtro Estático (Piso, >=3 habs, Piscina) a 'sourcing'...");
-        send(peticion);
     }
 
-     private void registrarEnDF() {
+    private void registrarEnDF() {
         DFAgentDescription descripcion = new DFAgentDescription();
         descripcion.setName(getAID());
 
@@ -77,6 +98,7 @@ public class BrokerAgent extends Agent {
 
     private void imprimirLista(ACLMessage listaViviendas) {
         try {
+            System.out.println("[Resultado del Filtrado JSON]:");
             // Parseamos el texto y lo convertimos a un Array de JSON
             JsonArray lista = JsonParser.parseString(listaViviendas.getContent()).getAsJsonArray();
 
