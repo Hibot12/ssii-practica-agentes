@@ -63,17 +63,17 @@ public class BrokerAgent extends Agent {
             System.out.println("[Broker] Esperando interacción en la UI...");
 
             // Bloquea hasta que llegue filtro de la UI.
-            // ACLMessage mensajeUI = blockingReceive(filtroUI);
+            ACLMessage mensajeUI = blockingReceive(filtroUI);
 
             System.out.println("[Broker] Petición de la UI recivida");
 
             // Forwarding del mensaje hacia SourcingAgent.
-            // String jsonFiltroRecibido = mensajeUI.getContent();
-            FiltroVivienda jsonFiltroRecibidoJava = new FiltroVivienda();
+             String jsonFiltroRecibido = mensajeUI.getContent();
+            /*FiltroVivienda jsonFiltroRecibidoJava = new FiltroVivienda();
             jsonFiltroRecibidoJava.tipo = "Apartment";
             jsonFiltroRecibidoJava.ciudad = "Javea";
             Gson gson = new Gson();
-            String jsonFiltroRecibido = gson.toJson(jsonFiltroRecibidoJava);
+            String jsonFiltroRecibido = gson.toJson(jsonFiltroRecibidoJava); */
 
             ACLMessage peticionSourcing = new ACLMessage(ACLMessage.REQUEST);
             peticionSourcing.addReceiver(new AID("sourcing", AID.ISLOCALNAME));
