@@ -1,4 +1,5 @@
 package es.upm.ssii.reagent;
+
 //importaciones de jade
 import jade.core.Agent;
 import jade.core.AID;
@@ -94,27 +95,6 @@ public class AnalystAgent extends Agent {
         }
     }
 
-    // buscador dinamico del agente de datos
-    private AID findInformationAgent() {
-        DFAgentDescription template = new DFAgentDescription();
-        ServiceDescription sd = new ServiceDescription();
-        sd.setType(INFO_SERVICE);
-        // añadimos el filtro de servicio a la plantilla de de busqueda general
-        template.addServices(sd);
-        try {
-            // realiza la busqueda en el DF de JADe
-            DFAgentDescription[] results = DFService.search(this, template);
-            if (results.length > 0) {
-                // extrae el identificador AID del primer proveedor disponible
-                results[0].getName();
-            }
-        } catch (FIPAException e) {
-            System.err.println("AnalystAgent: DF error de busqueda: " + e.getMessage());
-        }
-        System.out.println("AnalystAgent: InformationSourcingAgent no encontrado en el DF");
-        return null;
-    }
-
     // esto es el comportamiento principal
     // un bucle continuo para procesar los comandos del broker
     private class HandleRequests extends CyclicBehaviour {
@@ -133,10 +113,21 @@ public class AnalystAgent extends Agent {
 
             if (request != null) {
                 // extraemos la carga util del mensaje que contiene los filtros en JSON
-                String filterJson = request.getContent();
+                // Extraemos el JSON gigante que nos acaba de mandar el Broker con todas las
+                // casas
+                String jsonDelBroker = request.getContent();
                 System.out.println("AnalystAgent: Request de " + request.getSender().getLocalName());
-                // Invocamos la funcion intermedia para solicitar datos al informador
-                List<Vivienda> viviendas = fetchViviendas(filterJson);
+
+                // Convertimos el JSON del Broker directamente a nuestra lista de viviendas (sin
+                // buscar al Informador)
+                List<Vivienda> viviendas = new ArrayList<>();
+                try {
+                    Type listType = new TypeToken<List<Vivienda>>() {
+                    }.getType();
+                    viviendas = gson.fromJson(jsonDelBroker, listType);
+                } catch (Exception e) {
+                    System.err.println("AnalystAgent: Error convirtiendo el JSON del Broker - " + e.getMessage());
+                }
                 // comprobamos que no este vacia
                 if (viviendas == null || viviendas.isEmpty()) {
                     // enviamos un mensaje estructurada vacia para no romber el broker
@@ -241,51 +232,6 @@ public class AnalystAgent extends Agent {
             }
         }
 
-        // la comunicacion intermedia con el agente informador
-        private List<Vivienda> fetchViviendas(String filterJson) {
-            // esto busca el DF dinamicamente para localizar la direccion del informador
-            AID infoAgent = findInformationAgent();
-            if (infoAgent == null) {
-                return new ArrayList<>(); // devolvemos una lista vacia
-            }
-
-            ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
-            msg.addReceiver(infoAgent);
-            // esto añade un ID de conversacion usando el reloj del sistema
-            msg.setConversationId("anayst-query-" + System.currentTimeMillis());
-            // esto carga los criterios de filtrado JSON o texto vacio si es nulo
-            msg.setContent(filterJson != null ? filterJson : "");
-            send(msg);
-
-            System.out.println(
-                    "AnalystAgent: Query enviado a " + infoAgent.getLocalName() + ", esperando por la respuesta....");
-            // ahora hacemos el filtro para interceptar unicamente la respuesta relacionada
-            // con esta sesion de conversacion
-            MessageTemplate replyFilter = MessageTemplate.MatchConversationId(msg.getConversationId());
-            // bloqueamos el hilo y esperamos hasta 30 segundos
-            ACLMessage reply = blockingReceive(replyFilter, 30000);
-            // ahora en el caso de que se agota el tiempo
-            if (reply == null) {
-                System.out.println("AnalystAgent: Timeout, esperando para los datos");
-                // y devolvemos el array vacio para que no da error
-                return new ArrayList<>();
-            }
-
-            try {
-                // Aplicamos reflexion para definir la firma generica List<Vivienda>
-                Type listType = new TypeToken<List<Vivienda>>() {
-                }.getType();
-                List<Vivienda> result = gson.fromJson(reply.getContent(), listType); // esto desearaliza la cadena de
-                                                                                     // JSON
-                System.out.println("AnaystAgent: Recibido " + result.size() + "propiedades");
-                return result;
-            } catch (Exception e) {
-                System.err.println("AnalystAgent: Parse error - " + e.getMessage());
-                return new ArrayList<>();
-            }
-
-        }
-
         // los metodos helpers
 
         private void sendReply(ACLMessage original, String content) {
@@ -352,14 +298,4 @@ public class AnalystAgent extends Agent {
         }
 
     }
-
-    public static void main(String[] args) {
-        String[] jadeArgs = new String[] { "-gui", "MiAnalista:es.upm.ssii.reagent.AnalystAgent" };
-        try {
-            jade.Boot.main(jadeArgs);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
 }
