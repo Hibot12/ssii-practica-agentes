@@ -65,7 +65,7 @@ public class BrokerAgent extends Agent {
             // Bloquea hasta que llegue filtro de la UI.
             ACLMessage mensajeUI = blockingReceive(filtroUI);
 
-            System.out.println("[Broker] Petición de la UI recivida");
+            System.out.println("[Broker] Petición de la UI recibida");
 
             // Forwarding del mensaje hacia SourcingAgent.
              String jsonFiltroRecibido = mensajeUI.getContent();
