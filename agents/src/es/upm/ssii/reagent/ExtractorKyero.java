@@ -1,9 +1,13 @@
 package es.upm.ssii.reagent;
 
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,8 +16,15 @@ import com.google.gson.reflect.TypeToken;
 
 public class ExtractorKyero {
 
+    // Rutas relativas para arrancar desde terminal sin copiar el JSON al bin
+    private static final String[] RUTAS_FALLBACK = {
+            "agents/src/es/upm/ssii/reagent/viviendas.json",
+            "src/es/upm/ssii/reagent/viviendas.json",
+            "viviendas.json"
+    };
+
     public List<Vivienda> cargarViviendas() throws Exception {
-        InputStream stream = getClass().getResourceAsStream("viviendas.json");
+        InputStream stream = abrirStream();
         if (stream == null) {
             throw new Exception("No se ha encontrado viviendas.json");
         }
@@ -21,6 +32,19 @@ public class ExtractorKyero {
         try (InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
             return new Gson().fromJson(reader, tipo);
         }
+    }
+
+    private InputStream abrirStream() throws Exception {
+        InputStream stream = getClass().getResourceAsStream("viviendas.json");
+        int i = 0;
+        while (stream == null && i < RUTAS_FALLBACK.length) {
+            Path p = Paths.get(RUTAS_FALLBACK[i]);
+            if (Files.exists(p)) {
+                stream = new FileInputStream(p.toFile());
+            }
+            i++;
+        }
+        return stream;
     }
 
     public List<Vivienda> filtrar(List<Vivienda> viviendas, FiltroVivienda filtro) {
