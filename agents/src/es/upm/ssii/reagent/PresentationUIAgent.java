@@ -87,26 +87,52 @@ public class PresentationUIAgent extends Agent {
 
     private class PresentationFrame extends JFrame {
         private PresentationUIAgent myAgent;
-        private JTextField inputField;
         private JTextArea resultArea;
 
         public PresentationFrame(PresentationUIAgent a) {
             this.myAgent = a;
             setTitle("Buscador de viviendas - " + myAgent.getLocalName());
-            setSize(600, 400);
+            setSize(800, 600);
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             setLocationRelativeTo(null);
 
             JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
             mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-            JPanel topPanel = new JPanel(new BorderLayout(5, 5));
-            inputField = new JTextField();
+            // Grid Layout to house all filter properties cleanly
+            JPanel filterPanel = new JPanel(new GridLayout(0, 4, 5, 5));
+
+            // Ints
+            JTextField precioMaxF = new JTextField(); filterPanel.add(new JLabel("Precio Max:")); filterPanel.add(precioMaxF);
+            JTextField precioMinF = new JTextField(); filterPanel.add(new JLabel("Precio Min:")); filterPanel.add(precioMinF);
+            JTextField precioM2MaxF = new JTextField(); filterPanel.add(new JLabel("Precio/m2 Max:")); filterPanel.add(precioM2MaxF);
+            JTextField precioM2MinF = new JTextField(); filterPanel.add(new JLabel("Precio/m2 Min:")); filterPanel.add(precioM2MinF);
+            JTextField habitacionesMinF = new JTextField(); filterPanel.add(new JLabel("Habitaciones Min:")); filterPanel.add(habitacionesMinF);
+            JTextField banosMinF = new JTextField(); filterPanel.add(new JLabel("Baños Min:")); filterPanel.add(banosMinF);
+            JTextField superficieMinF = new JTextField(); filterPanel.add(new JLabel("Superficie Min:")); filterPanel.add(superficieMinF);
+            JTextField superficieMaxF = new JTextField(); filterPanel.add(new JLabel("Superficie Max:")); filterPanel.add(superficieMaxF);
+            JTextField distAeroMaxF = new JTextField(); filterPanel.add(new JLabel("Dist. Aeropuerto Max:")); filterPanel.add(distAeroMaxF);
+
+            // Strings
+            JTextField tipoF = new JTextField(); filterPanel.add(new JLabel("Tipo:")); filterPanel.add(tipoF);
+            JTextField ciudadF = new JTextField(); filterPanel.add(new JLabel("Ciudad:")); filterPanel.add(ciudadF);
+            JTextField provinciaF = new JTextField(); filterPanel.add(new JLabel("Provincia:")); filterPanel.add(provinciaF);
+            JTextField zonaF = new JTextField(); filterPanel.add(new JLabel("Zona:")); filterPanel.add(zonaF);
+
+            // Booleans (Using Standard Checkboxes to avoid text parsing errors)
+            JCheckBox tienePiscinaC = new JCheckBox(); filterPanel.add(new JLabel("Tiene Piscina:")); filterPanel.add(tienePiscinaC);
+            JCheckBox tieneParkingC = new JCheckBox(); filterPanel.add(new JLabel("Tiene Parking:")); filterPanel.add(tieneParkingC);
+            JCheckBox tieneTerrazaC = new JCheckBox(); filterPanel.add(new JLabel("Tiene Terraza:")); filterPanel.add(tieneTerrazaC);
+            JCheckBox tieneJardinC = new JCheckBox(); filterPanel.add(new JLabel("Tiene Jardin:")); filterPanel.add(tieneJardinC);
+            JCheckBox aireAcondC = new JCheckBox(); filterPanel.add(new JLabel("Aire Acondicionado:")); filterPanel.add(aireAcondC);
+            JCheckBox amuebladoC = new JCheckBox(); filterPanel.add(new JLabel("Amueblado:")); filterPanel.add(amuebladoC);
+            JCheckBox cercaPlayaC = new JCheckBox(); filterPanel.add(new JLabel("Cerca Playa:")); filterPanel.add(cercaPlayaC);
+
             JButton btnEnviar = new JButton("Enviar");
 
-            topPanel.add(new JLabel("Filtro (JSON): "), BorderLayout.WEST);
-            topPanel.add(inputField, BorderLayout.CENTER);
-            topPanel.add(btnEnviar, BorderLayout.EAST);
+            JPanel topPanel = new JPanel(new BorderLayout());
+            topPanel.add(filterPanel, BorderLayout.CENTER);
+            topPanel.add(btnEnviar, BorderLayout.SOUTH);
 
             resultArea = new JTextArea();
             resultArea.setEditable(false);
@@ -119,7 +145,34 @@ public class PresentationUIAgent extends Agent {
             btnEnviar.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    myAgent.userInput = inputField.getText();
+                    FiltroVivienda f = new FiltroVivienda();
+
+                    // Parse values
+                    try { f.precioMax = Integer.parseInt(precioMaxF.getText().trim()); } catch(Exception ex) {}
+                    try { f.precioMin = Integer.parseInt(precioMinF.getText().trim()); } catch(Exception ex) {}
+                    try { f.precioM2Max = Integer.parseInt(precioM2MaxF.getText().trim()); } catch(Exception ex) {}
+                    try { f.precioM2Min = Integer.parseInt(precioM2MinF.getText().trim()); } catch(Exception ex) {}
+                    try { f.habitacionesMin = Integer.parseInt(habitacionesMinF.getText().trim()); } catch(Exception ex) {}
+                    try { f.banosMin = Integer.parseInt(banosMinF.getText().trim()); } catch(Exception ex) {}
+                    try { f.superficieMin = Integer.parseInt(superficieMinF.getText().trim()); } catch(Exception ex) {}
+                    try { f.superficieMax = Integer.parseInt(superficieMaxF.getText().trim()); } catch(Exception ex) {}
+                    try { f.distanciaAeropuertoMax = Integer.parseInt(distAeroMaxF.getText().trim()); } catch(Exception ex) {}
+
+                    f.tipo = tipoF.getText().trim().isEmpty() ? null : tipoF.getText().trim();
+                    f.ciudad = ciudadF.getText().trim().isEmpty() ? null : ciudadF.getText().trim();
+                    f.provincia = provinciaF.getText().trim().isEmpty() ? null : provinciaF.getText().trim();
+                    f.zona = zonaF.getText().trim().isEmpty() ? null : zonaF.getText().trim();
+
+                    f.tienePiscina = tienePiscinaC.isSelected();
+                    f.tieneParking = tieneParkingC.isSelected();
+                    f.tieneTerraza = tieneTerrazaC.isSelected();
+                    f.tieneJardin = tieneJardinC.isSelected();
+                    f.aireAcondicionado = aireAcondC.isSelected();
+                    f.amueblado = amuebladoC.isSelected();
+                    f.cercaPlaya = cercaPlayaC.isSelected();
+
+                    // Map via GSON and alert broker
+                    myAgent.userInput = new com.google.gson.Gson().toJson(f);
                     myAgent.doWake();
                 }
             });
