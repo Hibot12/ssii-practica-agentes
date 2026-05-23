@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 //Analyst Agent - La inteligencia core del sistema multi-agente
-//tenemos 
+//tenemos
 public class AnalystAgent extends Agent {
 
     // constantes para identificar el tipo de ontologia, servicio y las rutas de
@@ -36,7 +36,7 @@ public class AnalystAgent extends Agent {
     // el identitificador del servicio del informador a n¡buscar
     private static final String INFO_SERVICE = "information_sourcing";
     // la ruta del dataset de entrenamiento weka
-    private static final String ARRF_PATH = "agents/data/viviendas_training.arff";
+    private static final String ARRF_RESOURCE_PATH = "viviendas_training.arff";
 
     private ClasificadorWeka clasificador;
     // creamos una instancia estatica GSON para reutilizarla en el parseo de JSON
@@ -51,7 +51,7 @@ public class AnalystAgent extends Agent {
         // creamos el objeto de procesamiento de lenguaje natural
         procesadorTexto = new ProcesadorTexto();
         // pasamos el path al clasificador de weka
-        clasificador = new ClasificadorWeka(ARRF_PATH);
+        clasificador = new ClasificadorWeka(getClass().getResourceAsStream(ARRF_RESOURCE_PATH));
         // verificamos que el modelo se entreno con exito
         if (clasificador.isReady()) {
             System.out.println("AnalystAgent: Weka J48 model trained OK");

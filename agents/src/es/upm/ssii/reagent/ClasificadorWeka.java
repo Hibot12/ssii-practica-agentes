@@ -7,6 +7,7 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.converters.ConverterUtils.DataSource;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -41,11 +42,11 @@ public class ClasificadorWeka {
     /**
      * Loads training data and builds the J48 decision tree.
      *
-     * @param arffPath path to the ARFF training file
+     * @param arffStream stream of the ARFF training file
      */
-    public ClasificadorWeka(String arffPath) {
+    public ClasificadorWeka(InputStream arffStream) {
         try {
-            DataSource source = new DataSource(arffPath);
+            DataSource source = new DataSource(arffStream);
             Instances data = source.getDataSet();
 
             // Last attribute is the class
