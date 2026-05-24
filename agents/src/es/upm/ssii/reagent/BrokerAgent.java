@@ -2,10 +2,8 @@ package es.upm.ssii.reagent;
 
 import jade.core.Agent;
 import jade.core.AID;
-import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
-import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -26,18 +24,19 @@ public class BrokerAgent extends Agent {
     // Ontología requerida por el Analista.
     public static final String ONTOLOGY = "ontologia-imobilaria";
 
+    private static final String SERVICE_SOURCING = "information-sourcing";
+    private static final String SERVICE_ANALISTA = "analisis-imobilario";
+
     // Esperamos un REQUEST del UIAgent.
     private MessageTemplate filtroUI = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
-    // Esperamos un INFORM como respuesta del InformationSourcingAgent.
-    private MessageTemplate filtroMensajeViviendas = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
-    // Filtro analista.
-    private MessageTemplate filtroAnalista = MessageTemplate.and(
-            MessageTemplate.MatchPerformative(ACLMessage.INFORM),
-            MessageTemplate.MatchOntology(ONTOLOGY));
+
+    private AID uiAID;
+    private AID sourcingAID;
+    private AID analistaAID;
 
     protected void setup() {
         registrarEnDF();
-        System.out.println("[" + getLocalName() + "]: Broker Orquestador activado.");
+        System.out.println("[" + getLocalName() + "]: Broker activado.");
 
         // Instanciamos el contenedor de la máquina de estados.
         FSMBehaviour fsm = new FSMBehaviour(this);
@@ -67,20 +66,24 @@ public class BrokerAgent extends Agent {
 
             System.out.println("[Broker] Petición de la UI recibida");
 
-            // Forwarding del mensaje hacia SourcingAgent.
-             String jsonFiltroRecibido = mensajeUI.getContent();
-            /*FiltroVivienda jsonFiltroRecibidoJava = new FiltroVivienda();
-            jsonFiltroRecibidoJava.tipo = "Apartment";
-            jsonFiltroRecibidoJava.ciudad = "Javea";
-            Gson gson = new Gson();
-            String jsonFiltroRecibido = gson.toJson(jsonFiltroRecibidoJava); */
+            uiAID = mensajeUI.getSender();
 
-            ACLMessage peticionSourcing = new ACLMessage(ACLMessage.REQUEST);
-            peticionSourcing.addReceiver(new AID("sourcing", AID.ISLOCALNAME));
-            peticionSourcing.setContent(jsonFiltroRecibido);
+            // Buscamos al sourcing en el DF.
+            sourcingAID = buscarAgentePorServicio(SERVICE_SOURCING);
 
-            send(peticionSourcing);
-            System.out.println("[Broker] Filtro enviado a SourcingAgent");
+            if (sourcingAID == null) {
+                System.out.println("[Broker] No se ha encontrado el agente de information-sourcing en el DF.");
+                avisarUI(ACLMessage.FAILURE, "No se ha encontrado el agente de information-sourcing.");
+            } else {
+                String jsonFiltroRecibido = mensajeUI.getContent();
+
+                ACLMessage peticionSourcing = new ACLMessage(ACLMessage.REQUEST);
+                peticionSourcing.addReceiver(sourcingAID);
+                peticionSourcing.setContent(jsonFiltroRecibido);
+
+                send(peticionSourcing);
+                System.out.println("[Broker] Filtro enviado a SourcingAgent");
+            }
         }
 
         public int onEnd() {
@@ -90,21 +93,33 @@ public class BrokerAgent extends Agent {
 
     public class EsperarSourcingBehaviour extends OneShotBehaviour {
         public void action() {
-            ACLMessage listaViviendas = blockingReceive(filtroMensajeViviendas);
+            if (sourcingAID != null) {
+                MessageTemplate filtroSourcing = MessageTemplate.and(
+                        MessageTemplate.MatchPerformative(ACLMessage.INFORM),
+                        MessageTemplate.MatchSender(sourcingAID));
 
-            if (listaViviendas != null) {
-                System.out.println("[Broker] Respuesta recibida del Recopilador");
-                imprimirLista(listaViviendas);
+                ACLMessage listaViviendas = blockingReceive(filtroSourcing);
 
-                // Creación del mensaje.
-                ACLMessage peticionAnalista = new ACLMessage(ACLMessage.REQUEST);
-                peticionAnalista.addReceiver(new AID("analista", AID.ISLOCALNAME));
-                peticionAnalista.setContent(listaViviendas.getContent());
-                peticionAnalista.setOntology(ONTOLOGY);
+                if (listaViviendas != null) {
+                    System.out.println("[Broker] Respuesta recibida del SourcingAgent");
+                    imprimirLista(listaViviendas);
 
-                send(peticionAnalista);
-                System.out.println("[Broker] JSON de viviendas transferido al Analista.");
+                    analistaAID = buscarAgentePorServicio(SERVICE_ANALISTA);
 
+                    if (analistaAID == null) {
+                        System.out.println("[Broker] No se ha encontrado el agente analista en el DF.");
+                        avisarUI(ACLMessage.FAILURE, "No se ha encontrado el agente analista.");
+                    } else {
+                        // Creación del mensaje.
+                        ACLMessage peticionAnalista = new ACLMessage(ACLMessage.REQUEST);
+                        peticionAnalista.addReceiver(analistaAID);
+                        peticionAnalista.setContent(listaViviendas.getContent());
+                        peticionAnalista.setOntology(ONTOLOGY);
+
+                        send(peticionAnalista);
+                        System.out.println("[Broker] JSON de viviendas transferido al Analista.");
+                    }
+                }
             }
         }
 
@@ -115,18 +130,31 @@ public class BrokerAgent extends Agent {
 
     public class EsperarAnalistaBehaviour extends OneShotBehaviour {
         public void action() {
-            System.out.println("[Broker] Esperando análisis...");
+            if (analistaAID != null) {
+                System.out.println("[Broker] Esperando análisis...");
 
-            // Bloquea hasta que el Analista envie informe.
-            ACLMessage informeAnalista = blockingReceive(filtroAnalista);
+                MessageTemplate filtroAnalista = MessageTemplate.and(
+                        MessageTemplate.and(
+                                MessageTemplate.MatchPerformative(ACLMessage.INFORM),
+                                MessageTemplate.MatchOntology(ONTOLOGY)),
+                        MessageTemplate.MatchSender(analistaAID));
 
-            if (informeAnalista != null) {
-                System.out.println("[Broker] ¡ÉXITO! Informe recibido del Analista.");
-                System.out.println("[Contenido del Reporte]: " + informeAnalista.getContent());
+                ACLMessage informeAnalista = blockingReceive(filtroAnalista);
+
+                if (informeAnalista != null) {
+                    System.out.println("[Broker] Informe recibido del Analista.");
+                    // System.out.println("[Contenido del Reporte]: " + informeAnalista.getContent());
+
+                    avisarUI(ACLMessage.INFORM, informeAnalista.getContent());
+                    System.out.println("[Broker] Informe enviado de vuelta a la UI.");
+                }
             }
         }
 
         public int onEnd() {
+            uiAID = null;
+            sourcingAID = null;
+            analistaAID = null;
             return 1;
         }
     }
@@ -152,6 +180,49 @@ public class BrokerAgent extends Agent {
             DFService.deregister(this);
         } catch (FIPAException e) {
             System.out.println("[Broker] Error al borrar registro del DF: " + e.getMessage());
+        }
+    }
+
+    // Reintenta por si el otro agente aún no se ha registrado.
+    private AID buscarAgentePorServicio(String tipoServicio) {
+        DFAgentDescription template = new DFAgentDescription();
+        ServiceDescription sd = new ServiceDescription();
+        sd.setType(tipoServicio);
+        template.addServices(sd);
+
+        AID resultado = null;
+        boolean encontrado = false;
+        int intento = 0;
+        while (!encontrado && intento < 10) {
+            try {
+                DFAgentDescription[] busqueda = DFService.search(this, template);
+                if (busqueda != null && busqueda.length > 0) {
+                    resultado = busqueda[0].getName();
+                    encontrado = true;
+                }
+            } catch (FIPAException e) {
+                System.out.println("[Broker] Error buscando '" + tipoServicio + "' en DF: " + e.getMessage());
+            }
+            if (!encontrado) {
+                try {
+                    Thread.sleep(300);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    encontrado = true;
+                }
+            }
+            intento++;
+        }
+        return resultado;
+    }
+
+    private void avisarUI(int performativa, String contenido) {
+        if (uiAID != null) {
+            ACLMessage mensaje = new ACLMessage(performativa);
+            mensaje.addReceiver(uiAID);
+            mensaje.setContent(contenido);
+            mensaje.setOntology(ONTOLOGY);
+            send(mensaje);
         }
     }
 
