@@ -15,6 +15,8 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import com.google.gson.Gson;
+
 public class PresentationUIAgent extends Agent {
 
     protected String userInput = "";
@@ -172,7 +174,7 @@ public class PresentationUIAgent extends Agent {
                     f.cercaPlaya = cercaPlayaC.isSelected();
 
                     // Map via GSON and alert broker
-                    myAgent.userInput = new com.google.gson.Gson().toJson(f);
+                    myAgent.userInput = new Gson().toJson(f);
                     myAgent.doWake();
                 }
             });
