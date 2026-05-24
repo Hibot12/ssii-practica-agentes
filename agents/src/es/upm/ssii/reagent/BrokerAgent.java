@@ -24,10 +24,10 @@ public class BrokerAgent extends Agent {
     // Ontología requerida por el Analista.
     public static final String ONTOLOGY = "ontologia-imobilaria";
 
-    private AID agenteUI;
-
     // Esperamos un REQUEST del UIAgent.
     private MessageTemplate filtroUI = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
+    // Esperamos un INFORM como respuesta del InformationSourcingAgent.
+    private MessageTemplate filtroMensajeViviendas = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
 
     private AID uiAID;
     private AID sourcingAID;
@@ -77,12 +77,12 @@ public class BrokerAgent extends Agent {
              * String jsonFiltroRecibido = gson.toJson(jsonFiltroRecibidoJava);
              */
 
+            sourcingAID = buscarAgentePorServicio("information-sourcing");
+
             if (sourcingAID == null) {
                 System.out.println("[Broker] No se ha encontrado el agente de information-sourcing en el DF.");
                 avisarUI(ACLMessage.FAILURE, "No se ha encontrado el agente de information-sourcing.");
             } else {
-                String jsonFiltroRecibido = mensajeUI.getContent();
-
                 ACLMessage peticionSourcing = new ACLMessage(ACLMessage.REQUEST);
                 peticionSourcing.addReceiver(sourcingAID);
                 peticionSourcing.setContent(jsonFiltroRecibido);
@@ -105,15 +105,21 @@ public class BrokerAgent extends Agent {
                 System.out.println("[Broker] Respuesta recibida del SourcingAgent");
                 imprimirLista(listaViviendas);
 
-                // Creación del mensaje.
-                ACLMessage peticionAnalista = new ACLMessage(ACLMessage.REQUEST);
-                peticionAnalista.addReceiver(new AID("analista", AID.ISLOCALNAME));
-                peticionAnalista.setContent(listaViviendas.getContent());
-                peticionAnalista.setOntology(ONTOLOGY);
+                analistaAID = buscarAgentePorServicio("analista");
 
-                send(peticionAnalista);
-                System.out.println("[Broker] JSON de viviendas transferido al Analista.");
+                if (analistaAID == null) {
+                    System.out.println("[Broker] No se ha encontrado el agente analista en el DF.");
+                    avisarUI(ACLMessage.FAILURE, "No se ha encontrado el agente analista en el DF.");
+                } else {
+                    // Creación del mensaje.
+                    ACLMessage peticionAnalista = new ACLMessage(ACLMessage.REQUEST);
+                    peticionAnalista.addReceiver(analistaAID);
+                    peticionAnalista.setContent(listaViviendas.getContent());
+                    peticionAnalista.setOntology(ONTOLOGY);
 
+                    send(peticionAnalista);
+                    System.out.println("[Broker] JSON de viviendas transferido al Analista.");
+                }
             }
         }
 
@@ -135,23 +141,24 @@ public class BrokerAgent extends Agent {
 
                 ACLMessage informeAnalista = blockingReceive(filtroAnalista);
 
-            if (informeAnalista != null) {
-                System.out.println("[Broker] Informe recibido del Analista.");
-                // System.out.println("[Contenido del Reporte]: " +
-                // informeAnalista.getContent());
+                if (informeAnalista != null) {
+                    System.out.println("[Broker] Informe recibido del Analista.");
+                    // System.out.println("[Contenido del Reporte]: " +
+                    // informeAnalista.getContent());
 
-                if (agenteUIPeticionario != null) {
-                    ACLMessage respuestaUI = new ACLMessage(ACLMessage.INFORM);
-                    respuestaUI.addReceiver(agenteUIPeticionario);
-                    respuestaUI.setContent(informeAnalista.getContent());
-                    respuestaUI.setOntology(ONTOLOGY);
+                    if (uiAID != null) {
+                        ACLMessage respuestaUI = new ACLMessage(ACLMessage.INFORM);
+                        respuestaUI.addReceiver(uiAID);
+                        respuestaUI.setContent(informeAnalista.getContent());
+                        respuestaUI.setOntology(ONTOLOGY);
 
-                    send(respuestaUI);
-                    System.out.println("[Broker] Informe enviado de vuelta a la UI.");
-                } else {
-                    System.out.println("[Broker] Error: No se pudo identificar al agente UI de origen.");
+                        send(respuestaUI);
+                        System.out.println("[Broker] Informe enviado de vuelta a la UI.");
+                    } else {
+                        System.out.println("[Broker] Error: No se pudo identificar al agente UI de origen.");
+                    }
+
                 }
-
             }
         }
 
