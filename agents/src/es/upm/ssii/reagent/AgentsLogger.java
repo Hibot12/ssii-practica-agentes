@@ -25,7 +25,7 @@ public class AgentsLogger {
         }
     }
 
-    // Al llamar a estos métodos, SOLO se escribirá en nuestro fileHandler (logs.txt)
+    // Al llamar a estos métodos, solo se escribirá en nuestro fileHandler (logs.txt)
     public static void info(String tag, String mensaje) {
         logger.info("[" + tag + "] " + mensaje);
     }
