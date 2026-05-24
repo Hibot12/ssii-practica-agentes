@@ -46,10 +46,14 @@ public class BrokerAgent extends Agent {
         fsm.registerState(new EsperarAnalistaBehaviour(), ESTADO_ESPERAR_ANALISTA);
 
         // Definición de transiciones.
-        // Cada estado devuelve siempre 1 al terminar con éxito para avanzar al
+        // Cada estado devuelve 1 al terminar con éxito para avanzar al
         // siguiente
         fsm.registerTransition(ESTADO_ESPERAR_UI, ESTADO_ESPERAR_SOURCING, 1);
+        fsm.registerTransition(ESTADO_ESPERAR_UI, ESTADO_ESPERAR_UI, 0);
+
         fsm.registerTransition(ESTADO_ESPERAR_SOURCING, ESTADO_ESPERAR_ANALISTA, 1);
+        fsm.registerTransition(ESTADO_ESPERAR_SOURCING, ESTADO_ESPERAR_UI, 0);
+
         fsm.registerTransition(ESTADO_ESPERAR_ANALISTA, ESTADO_ESPERAR_UI, 1);
 
         // Lanzamos la FSM
@@ -57,6 +61,7 @@ public class BrokerAgent extends Agent {
     }
 
     public class EsperarUIBehaviour extends OneShotBehaviour {
+        private int codigoTransicion;
         public void action() {
             System.out.println("[Broker] Esperando interacción en la UI...");
 
@@ -69,19 +74,12 @@ public class BrokerAgent extends Agent {
 
             // Forwarding del mensaje hacia SourcingAgent.
             String jsonFiltroRecibido = mensajeUI.getContent();
-            /*
-             * FiltroVivienda jsonFiltroRecibidoJava = new FiltroVivienda();
-             * jsonFiltroRecibidoJava.tipo = "Apartment";
-             * jsonFiltroRecibidoJava.ciudad = "Javea";
-             * Gson gson = new Gson();
-             * String jsonFiltroRecibido = gson.toJson(jsonFiltroRecibidoJava);
-             */
-
             sourcingAID = buscarAgentePorServicio("information-sourcing");
 
             if (sourcingAID == null) {
                 System.out.println("[Broker] No se ha encontrado el agente de information-sourcing en el DF.");
                 avisarUI(ACLMessage.FAILURE, "No se ha encontrado el agente de information-sourcing.");
+                codigoTransicion = 0;
             } else {
                 ACLMessage peticionSourcing = new ACLMessage(ACLMessage.REQUEST);
                 peticionSourcing.addReceiver(sourcingAID);
@@ -89,20 +87,36 @@ public class BrokerAgent extends Agent {
 
                 send(peticionSourcing);
                 System.out.println("[Broker] Filtro enviado a SourcingAgent");
+                codigoTransicion = 1;
             }
         }
 
         public int onEnd() {
-            return 1;
+            return codigoTransicion;
         }
     }
 
     public class EsperarSourcingBehaviour extends OneShotBehaviour {
+        private int codigoTransicion;
+
         public void action() {
             ACLMessage listaViviendas = blockingReceive(filtroMensajeViviendas);
 
             if (listaViviendas != null) {
                 System.out.println("[Broker] Respuesta recibida del SourcingAgent");
+
+                String contenido = listaViviendas.getContent();
+
+                // Si el contenido es nulo o es un JSON vacío "[]".
+                if (contenido == null || contenido.trim().equals("") || contenido.trim().equals("[]")) {
+                    System.out.println("[Broker] El SourcingAgent devolvió una lista vacía.");
+                    avisarUI(ACLMessage.INFORM,
+                            "{\"resultados\":[], \"total\":0, \"mensaje\":\"No se encontraron viviendas con los filtros seleccionados.\"}");
+
+                    codigoTransicion = 0;
+                    return;
+                } 
+
                 imprimirLista(listaViviendas);
 
                 analistaAID = buscarAgentePorServicio("analista");
@@ -110,21 +124,23 @@ public class BrokerAgent extends Agent {
                 if (analistaAID == null) {
                     System.out.println("[Broker] No se ha encontrado el agente analista en el DF.");
                     avisarUI(ACLMessage.FAILURE, "No se ha encontrado el agente analista en el DF.");
+                    codigoTransicion = 0;
                 } else {
                     // Creación del mensaje.
                     ACLMessage peticionAnalista = new ACLMessage(ACLMessage.REQUEST);
                     peticionAnalista.addReceiver(analistaAID);
-                    peticionAnalista.setContent(listaViviendas.getContent());
+                    peticionAnalista.setContent(contenido);
                     peticionAnalista.setOntology(ONTOLOGY);
 
                     send(peticionAnalista);
                     System.out.println("[Broker] JSON de viviendas transferido al Analista.");
+                    codigoTransicion = 1;
                 }
             }
         }
 
         public int onEnd() {
-            return 1;
+            return codigoTransicion;
         }
     }
 
