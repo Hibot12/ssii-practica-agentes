@@ -25,7 +25,7 @@ En resumen, se trata de compilar como es usual y ejecutar los agentes también c
 
 Utiliza run.sh para ejecutar el proyecto bajo Linux. Bajo otras plataformas la ejecución es idéntica hasta donde hemos podido comprobar.
 
-Para el scraper (tools/scraper), una vez instaladas las dependencias, es ejecuta con python3 scrape_kyero.py --browser-path <BROWSER_PATH>. Utiliza python3 scrape_kyero.py --help para ver más opciones.
+Para el scraper (tools/scraper), una vez instaladas las dependencias, se ejecuta con python3 scrape_kyero.py --browser-path <BROWSER_PATH>. Utiliza python3 scrape_kyero.py --help para ver más opciones.
 
 ## Datos de ejemplo para ejecutar la práctica
 
@@ -39,4 +39,4 @@ Los datos son generados por el scraper (tools/scraper).
 
 ## Declaración de IA
 
-La IA se ha utilizado exclusivamente para tareas mecánicas, como calcular posiciones de los elementos de la UI y definir campos de datos en el módulo tools/scraper, en ontologías y modelos . Ninguna decisión arquitectural del sistema o de los agentes ha sido delegada a la IA.
+La IA se ha utilizado exclusivamente para tareas mecánicas, como calcular posiciones de los elementos de la UI y definir campos de datos en el módulo tools/scraper, en ontologías y modelos. Ninguna decisión arquitectural del sistema o de los agentes ha sido delegada a la IA.

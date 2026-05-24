@@ -1,3 +1,4 @@
+#!/bin/bash
 cd ./agents/
 mkdir -p bin
 javac --release 21 -cp "lib/*" -d bin src/es/upm/ssii/reagent/*.java
