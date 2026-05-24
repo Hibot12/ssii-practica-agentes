@@ -14,11 +14,13 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.List;
 
 import com.google.gson.Gson;
 
 public class PresentationUIAgent extends Agent {
 
+    Gson gson = new Gson();
     protected String userInput = "";
     private transient PresentationFrame myGui;
 
@@ -38,6 +40,10 @@ public class PresentationUIAgent extends Agent {
         if (myGui != null) {
             myGui.dispose();
         }
+    }
+
+    private class BrokerResponse {
+        public List<Vivienda> resultados;
     }
 
     private class BrokerCommunicationBehaviour extends CyclicBehaviour {
@@ -62,10 +68,16 @@ public class PresentationUIAgent extends Agent {
 
                 if (reply != null) {
                     String content = reply.getContent();
-                    SwingUtilities.invokeLater(() -> myGui.appendResult("Resultados:\n" + content + "\n\n"));
+                    try {
+                        BrokerResponse response = gson.fromJson(content, BrokerResponse.class);
+                        SwingUtilities.invokeLater(() -> myGui.updateResults(response.resultados));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        SwingUtilities.invokeLater(() -> myGui.showError("Error procesando los resultados JSON."));
+                    }
                 }
             } else {
-                SwingUtilities.invokeLater(() -> myGui.appendResult("Error: No se encontró el agente broker.\n\n"));
+                SwingUtilities.invokeLater(() -> myGui.showError("Error: No se encontró el agente broker."));
             }
         }
 
@@ -89,7 +101,12 @@ public class PresentationUIAgent extends Agent {
 
     private class PresentationFrame extends JFrame {
         private PresentationUIAgent myAgent;
-        private JTextArea resultArea;
+
+        // Carousel State & Components
+        private List<Vivienda> currentResults;
+        private int currentIndex = 0;
+        private JLabel lblTitulo, lblPrecio, lblSuperficie, lblHabitaciones, lblBanos, lblUbicacion;
+        private JButton btnPrev, btnNext;
 
         public PresentationFrame(PresentationUIAgent a) {
             this.myAgent = a;
@@ -136,12 +153,57 @@ public class PresentationUIAgent extends Agent {
             topPanel.add(filterPanel, BorderLayout.CENTER);
             topPanel.add(btnEnviar, BorderLayout.SOUTH);
 
-            resultArea = new JTextArea();
-            resultArea.setEditable(false);
-            JScrollPane scrollPane = new JScrollPane(resultArea);
+            // -------------------------------------------------------------
+            // NEW CAROUSEL PANEL (Replaces JTextArea and JScrollPane)
+            // -------------------------------------------------------------
+            JPanel resultContainer = new JPanel(new BorderLayout());
+            resultContainer.setBorder(BorderFactory.createTitledBorder("Resultados"));
+
+            JPanel labelsPanel = new JPanel(new GridLayout(6, 1, 5, 5));
+            lblTitulo = new JLabel("Esperando búsqueda...", SwingConstants.CENTER);
+            lblPrecio = new JLabel("", SwingConstants.CENTER);
+            lblSuperficie = new JLabel("", SwingConstants.CENTER);
+            lblHabitaciones = new JLabel("", SwingConstants.CENTER);
+            lblBanos = new JLabel("", SwingConstants.CENTER);
+            lblUbicacion = new JLabel("", SwingConstants.CENTER);
+
+            // Styling adjustments for emphasis
+            lblTitulo.setFont(new Font("SansSerif", Font.BOLD, 14));
+            lblPrecio.setForeground(new Color(0, 100, 0));
+
+            labelsPanel.add(lblTitulo);
+            labelsPanel.add(lblPrecio);
+            labelsPanel.add(lblSuperficie);
+            labelsPanel.add(lblHabitaciones);
+            labelsPanel.add(lblBanos);
+            labelsPanel.add(lblUbicacion);
+
+            btnPrev = new JButton("<");
+            btnNext = new JButton(">");
+            btnPrev.setEnabled(false);
+            btnNext.setEnabled(false);
+
+            resultContainer.add(btnPrev, BorderLayout.WEST);
+            resultContainer.add(labelsPanel, BorderLayout.CENTER);
+            resultContainer.add(btnNext, BorderLayout.EAST);
+
+            // Carousel Actions
+            btnPrev.addActionListener(e -> {
+                if (currentIndex > 0) {
+                    currentIndex--;
+                    displayCurrentResult();
+                }
+            });
+
+            btnNext.addActionListener(e -> {
+                if (currentResults != null && currentIndex < currentResults.size() - 1) {
+                    currentIndex++;
+                    displayCurrentResult();
+                }
+            });
 
             mainPanel.add(topPanel, BorderLayout.NORTH);
-            mainPanel.add(scrollPane, BorderLayout.CENTER);
+            mainPanel.add(resultContainer, BorderLayout.CENTER);
             getContentPane().add(mainPanel);
 
             btnEnviar.addActionListener(new ActionListener() {
@@ -174,15 +236,54 @@ public class PresentationUIAgent extends Agent {
                     f.cercaPlaya = cercaPlayaC.isSelected();
 
                     // Map via GSON and alert broker
-                    myAgent.userInput = new Gson().toJson(f);
+                    myAgent.userInput = gson.toJson(f);
                     myAgent.doWake();
                 }
             });
         }
 
-        public void appendResult(String text) {
-            resultArea.append(text);
-            resultArea.setCaretPosition(resultArea.getDocument().getLength());
+        public void updateResults(List<Vivienda> resultados) {
+            this.currentResults = resultados;
+            this.currentIndex = 0;
+            displayCurrentResult();
+        }
+
+        public void showError(String msg) {
+            this.currentResults = null;
+            lblTitulo.setText(msg);
+            lblPrecio.setText("");
+            lblSuperficie.setText("");
+            lblHabitaciones.setText("");
+            lblBanos.setText("");
+            lblUbicacion.setText("");
+            btnPrev.setEnabled(false);
+            btnNext.setEnabled(false);
+        }
+
+        private void displayCurrentResult() {
+            if (currentResults == null || currentResults.isEmpty()) {
+                showError("No se encontraron resultados para su filtro.");
+                return;
+            }
+
+            Vivienda v = currentResults.get(currentIndex);
+
+            // Format labels with current data
+            String headerTitle = v.titulo != null && !v.titulo.isEmpty() ? v.titulo : ("Vivienda ID: " + v.id);
+            lblTitulo.setText("[" + (currentIndex + 1) + " / " + currentResults.size() + "] " + headerTitle);
+
+            lblPrecio.setText("Precio: " + v.precio + " €  (" + v.precioM2 + " €/m²)");
+            lblSuperficie.setText("Superficie: " + v.superficieM2 + " m²");
+            lblHabitaciones.setText("Habitaciones: " + v.habitaciones);
+            lblBanos.setText("Baños: " + v.banos);
+
+            String ubi = (v.ciudad != null ? v.ciudad : "") +
+                         (v.zona != null && !v.zona.isEmpty() ? " - " + v.zona : "");
+            lblUbicacion.setText(ubi.isEmpty() ? "Ubicación desconocida" : "Ubicación: " + ubi);
+
+            // Toggle arrow states based on bounds
+            btnPrev.setEnabled(currentIndex > 0);
+            btnNext.setEnabled(currentIndex < currentResults.size() - 1);
         }
     }
 }
