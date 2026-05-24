@@ -39,4 +39,4 @@ TODO
 
 ## Declaración de IA
 
-TODO
+La IA se ha utilizado exclusivamente para tareas mecánicas, como calcular posiciones de los elementos de la UI y definir campos de datos en el módulo tools/scraper, en ontologías y modelos . Ninguna decisión arquitectural del sistema o de los agentes ha sido delegada a la IA.
