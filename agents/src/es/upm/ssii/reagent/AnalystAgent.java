@@ -19,12 +19,17 @@ import com.google.gson.reflect.TypeToken;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.lang.reflect.Type;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 //Analyst Agent - La inteligencia core del sistema multi-agente
-//tenemos 
+//tenemos
 public class AnalystAgent extends Agent {
 
     // constantes para identificar el tipo de ontologia, servicio y las rutas de
@@ -36,7 +41,7 @@ public class AnalystAgent extends Agent {
     // el identitificador del servicio del informador a n¡buscar
     private static final String INFO_SERVICE = "information_sourcing";
     // la ruta del dataset de entrenamiento weka
-    private static final String ARRF_PATH = "agents/data/viviendas_training.arff";
+    private static final String ARRF_RESOURCE_PATH = "viviendas_training.arff";
 
     private ClasificadorWeka clasificador;
     // creamos una instancia estatica GSON para reutilizarla en el parseo de JSON
@@ -51,7 +56,7 @@ public class AnalystAgent extends Agent {
         // creamos el objeto de procesamiento de lenguaje natural
         procesadorTexto = new ProcesadorTexto();
         // pasamos el path al clasificador de weka
-        clasificador = new ClasificadorWeka(ARRF_PATH);
+        clasificador = new ClasificadorWeka(abrirResourceArff(ARRF_RESOURCE_PATH));
         // verificamos que el modelo se entreno con exito
         if (clasificador.isReady()) {
             System.out.println("AnalystAgent: Weka J48 model trained OK");
@@ -73,6 +78,29 @@ public class AnalystAgent extends Agent {
         } catch (FIPAException ignored) {
             System.out.println("AnalysisAgent " + getLocalName() + ": Eliminado");
         }
+    }
+
+    // abrimos el ARFF, primero del classpath y si no de disco
+    private InputStream abrirResourceArff(String nombre) {
+        InputStream stream = getClass().getResourceAsStream(nombre);
+        String[] fallback = {
+                "agents/src/es/upm/ssii/reagent/" + nombre,
+                "src/es/upm/ssii/reagent/" + nombre,
+                nombre
+        };
+        int i = 0;
+        while (stream == null && i < fallback.length) {
+            Path p = Paths.get(fallback[i]);
+            if (Files.exists(p)) {
+                try {
+                    stream = new FileInputStream(p.toFile());
+                } catch (Exception e) {
+                    System.out.println("AnalystAgent: error abriendo " + p + ": " + e.getMessage());
+                }
+            }
+            i++;
+        }
+        return stream;
     }
 
     // metodo de registro en el facilitador de directorio
