@@ -6,7 +6,7 @@ import java.util.logging.FileHandler;
 import java.util.logging.SimpleFormatter;
 
 public class AgentsLogger {
-    // CLAVE: Usamos un nombre de fantasía único para aislar nuestro bus de datos
+   
     private static final Logger logger = Logger.getLogger("AgentsCustomLogger");
 
     static {
