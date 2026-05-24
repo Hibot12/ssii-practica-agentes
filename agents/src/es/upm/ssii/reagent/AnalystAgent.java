@@ -35,7 +35,7 @@ public class AnalystAgent extends Agent {
     // constantes para identificar el tipo de ontologia, servicio y las rutas de
     // archivos
     // el tipo de servicio para el DF
-    public static final String SERVICE_TYPE = "analista";
+    public static final String SERVICE_TYPE = "analisis-imobilario";
     // el nombre de la ontologia del menasaje
     public static final String ONTOLOGY = "ontologia-imobilaria";
     // el identitificador del servicio del informador a n¡buscar
