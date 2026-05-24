@@ -74,7 +74,7 @@ public class BrokerAgent extends Agent {
 
             // Forwarding del mensaje hacia SourcingAgent.
             String jsonFiltroRecibido = mensajeUI.getContent();
-            sourcingAID = buscarAgentePorServicio("information-sourcing");
+            sourcingAID = buscarAgentePorServicio("sourcing");
 
             if (sourcingAID == null) {
                 System.out.println("[Broker] No se ha encontrado el agente de information-sourcing en el DF.");

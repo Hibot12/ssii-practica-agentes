@@ -67,7 +67,7 @@ public class InformationSourcingAgent extends Agent {
         descripcion.setName(getAID());
 
         ServiceDescription servicio = new ServiceDescription();
-        servicio.setType("information-sourcing");
+        servicio.setType("sourcing");
         servicio.setName(getLocalName());
         descripcion.addServices(servicio);
 
