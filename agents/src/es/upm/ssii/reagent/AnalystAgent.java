@@ -6,6 +6,7 @@ import jade.core.AID;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.Property;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
@@ -37,7 +38,7 @@ public class AnalystAgent extends Agent {
     // el tipo de servicio para el DF
     public static final String SERVICE_TYPE = "analista";
     // el nombre de la ontologia del menasaje
-    public static final String ONTOLOGY = "ontologia-imobilaria";
+    public static final String ONTOLOGY = "ontologia-inmobiliaria";
     // el identitificador del servicio del informador a n¡buscar
     private static final String INFO_SERVICE = "information_sourcing";
     // la ruta del dataset de entrenamiento weka
@@ -64,7 +65,7 @@ public class AnalystAgent extends Agent {
             System.out.println("AnalystAgent: Weka no esta disponible");
         }
         // llamamos el metodo interno para anunciar las capacidades del agente en el DF
-        registerDF();
+        registarEnDf();
         // Añadimos y activamos el comportamiento principal para procesar peticiones
         addBehaviour(new HandleRequests());
         System.out.println("AnalystAgent " + getLocalName() + ": Listo");
@@ -104,19 +105,31 @@ public class AnalystAgent extends Agent {
     }
 
     // metodo de registro en el facilitador de directorio
-    protected void registerDF() {
+    protected void registarEnDf() {
         // descripcion del agente
-        DFAgentDescription dfd = new DFAgentDescription();
+        DFAgentDescription descripcion = new DFAgentDescription();
         // conectamos la id unica del agente AID, a la descripcion del DF
-        dfd.setName(getAID());
-        ServiceDescription sd = new ServiceDescription(); // esto detalla el servicio concreto ofrecido por el agente
-        sd.setType(SERVICE_TYPE);
-        sd.setName(getLocalName());
+        descripcion.setName(getAID());
+        descripcion.addLanguages("FIPA-SL");
+        descripcion.addOntologies(ONTOLOGY);
+        descripcion.addProtocols("fipa-request");
+        ServiceDescription servicio = new ServiceDescription(); // esto detalla el servicio concreto ofrecido por el
+                                                                // agente
+        servicio.setType(SERVICE_TYPE);
+        servicio.setName(getLocalName());
+        servicio.addOntologies(ONTOLOGY);
+        servicio.addLanguages("FIPA-SL");
+        servicio.addLanguages("es-ES");
+        servicio.addLanguages("en-EN");
+        servicio.addProtocols("fipa_request");
+        Property desc = new Property("Descripción",
+                "Agente de análisis inmobiliario con Weka y Procesador de texto");
+        servicio.addProperties(desc);
         // añadimos el servicio concreto al contendor de descripcion de el agente
-        dfd.addServices(sd);
+        descripcion.addServices(servicio);
         try { // bloque de seguridad
               // Publicamos la desc del agente a las paginas amarillas de JADE
-            DFService.register(this, dfd);
+            DFService.register(this, descripcion);
             System.out.println("AnalystAgent: Registrado en el DF '" + SERVICE_TYPE + "'");
         } catch (FIPAException e) {
             System.err.println("AnaystAgent: DF error: " + e.getMessage());

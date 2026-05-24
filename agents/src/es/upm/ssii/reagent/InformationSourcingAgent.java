@@ -5,10 +5,10 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.Property;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -65,10 +65,20 @@ public class InformationSourcingAgent extends Agent {
     private void registrarEnDF() {
         DFAgentDescription descripcion = new DFAgentDescription();
         descripcion.setName(getAID());
+        descripcion.addLanguages("FIPA-SL");
+        descripcion.addOntologies("ontoloia-inmobiliaria");
+        descripcion.addProtocols("fipa-request");
 
         ServiceDescription servicio = new ServiceDescription();
         servicio.setType("sourcing");
         servicio.setName(getLocalName());
+        servicio.addOntologies("ontologia-inmobiliaria");
+        servicio.addLanguages("FIPA-SL");
+        servicio.addLanguages("JSON");
+        servicio.addProtocols("fipa-request");
+        Property desc = new Property("Descripción",
+                "Agente encargado de la búsqueda y recopilación de datos");
+        servicio.addProperties(desc);
         descripcion.addServices(servicio);
 
         try {

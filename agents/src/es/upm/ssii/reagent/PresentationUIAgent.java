@@ -6,6 +6,7 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.Property;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
@@ -128,30 +129,70 @@ public class PresentationUIAgent extends Agent {
             JPanel filterPanel = new JPanel(new GridLayout(0, 4, 5, 5));
 
             // Ints
-            JTextField precioMaxF = new JTextField(); filterPanel.add(new JLabel("Precio Max:")); filterPanel.add(precioMaxF);
-            JTextField precioMinF = new JTextField(); filterPanel.add(new JLabel("Precio Min:")); filterPanel.add(precioMinF);
-            JTextField precioM2MaxF = new JTextField(); filterPanel.add(new JLabel("Precio/m2 Max:")); filterPanel.add(precioM2MaxF);
-            JTextField precioM2MinF = new JTextField(); filterPanel.add(new JLabel("Precio/m2 Min:")); filterPanel.add(precioM2MinF);
-            JTextField habitacionesMinF = new JTextField(); filterPanel.add(new JLabel("Habitaciones Min:")); filterPanel.add(habitacionesMinF);
-            JTextField banosMinF = new JTextField(); filterPanel.add(new JLabel("Baños Min:")); filterPanel.add(banosMinF);
-            JTextField superficieMinF = new JTextField(); filterPanel.add(new JLabel("Superficie Min:")); filterPanel.add(superficieMinF);
-            JTextField superficieMaxF = new JTextField(); filterPanel.add(new JLabel("Superficie Max:")); filterPanel.add(superficieMaxF);
-            JTextField distAeroMaxF = new JTextField(); filterPanel.add(new JLabel("Dist. Aeropuerto Max:")); filterPanel.add(distAeroMaxF);
+            JTextField precioMaxF = new JTextField();
+            filterPanel.add(new JLabel("Precio Max:"));
+            filterPanel.add(precioMaxF);
+            JTextField precioMinF = new JTextField();
+            filterPanel.add(new JLabel("Precio Min:"));
+            filterPanel.add(precioMinF);
+            JTextField precioM2MaxF = new JTextField();
+            filterPanel.add(new JLabel("Precio/m2 Max:"));
+            filterPanel.add(precioM2MaxF);
+            JTextField precioM2MinF = new JTextField();
+            filterPanel.add(new JLabel("Precio/m2 Min:"));
+            filterPanel.add(precioM2MinF);
+            JTextField habitacionesMinF = new JTextField();
+            filterPanel.add(new JLabel("Habitaciones Min:"));
+            filterPanel.add(habitacionesMinF);
+            JTextField banosMinF = new JTextField();
+            filterPanel.add(new JLabel("Baños Min:"));
+            filterPanel.add(banosMinF);
+            JTextField superficieMinF = new JTextField();
+            filterPanel.add(new JLabel("Superficie Min:"));
+            filterPanel.add(superficieMinF);
+            JTextField superficieMaxF = new JTextField();
+            filterPanel.add(new JLabel("Superficie Max:"));
+            filterPanel.add(superficieMaxF);
+            JTextField distAeroMaxF = new JTextField();
+            filterPanel.add(new JLabel("Dist. Aeropuerto Max:"));
+            filterPanel.add(distAeroMaxF);
 
             // Strings
-            JTextField tipoF = new JTextField(); filterPanel.add(new JLabel("Tipo:")); filterPanel.add(tipoF);
-            JTextField ciudadF = new JTextField(); filterPanel.add(new JLabel("Ciudad:")); filterPanel.add(ciudadF);
-            JTextField provinciaF = new JTextField(); filterPanel.add(new JLabel("Provincia:")); filterPanel.add(provinciaF);
-            JTextField zonaF = new JTextField(); filterPanel.add(new JLabel("Zona:")); filterPanel.add(zonaF);
+            JTextField tipoF = new JTextField();
+            filterPanel.add(new JLabel("Tipo:"));
+            filterPanel.add(tipoF);
+            JTextField ciudadF = new JTextField();
+            filterPanel.add(new JLabel("Ciudad:"));
+            filterPanel.add(ciudadF);
+            JTextField provinciaF = new JTextField();
+            filterPanel.add(new JLabel("Provincia:"));
+            filterPanel.add(provinciaF);
+            JTextField zonaF = new JTextField();
+            filterPanel.add(new JLabel("Zona:"));
+            filterPanel.add(zonaF);
 
             // Booleans (Using Standard Checkboxes to avoid text parsing errors)
-            JCheckBox tienePiscinaC = new JCheckBox(); filterPanel.add(new JLabel("Tiene Piscina:")); filterPanel.add(tienePiscinaC);
-            JCheckBox tieneParkingC = new JCheckBox(); filterPanel.add(new JLabel("Tiene Parking:")); filterPanel.add(tieneParkingC);
-            JCheckBox tieneTerrazaC = new JCheckBox(); filterPanel.add(new JLabel("Tiene Terraza:")); filterPanel.add(tieneTerrazaC);
-            JCheckBox tieneJardinC = new JCheckBox(); filterPanel.add(new JLabel("Tiene Jardin:")); filterPanel.add(tieneJardinC);
-            JCheckBox aireAcondC = new JCheckBox(); filterPanel.add(new JLabel("Aire Acondicionado:")); filterPanel.add(aireAcondC);
-            JCheckBox amuebladoC = new JCheckBox(); filterPanel.add(new JLabel("Amueblado:")); filterPanel.add(amuebladoC);
-            JCheckBox cercaPlayaC = new JCheckBox(); filterPanel.add(new JLabel("Cerca Playa:")); filterPanel.add(cercaPlayaC);
+            JCheckBox tienePiscinaC = new JCheckBox();
+            filterPanel.add(new JLabel("Tiene Piscina:"));
+            filterPanel.add(tienePiscinaC);
+            JCheckBox tieneParkingC = new JCheckBox();
+            filterPanel.add(new JLabel("Tiene Parking:"));
+            filterPanel.add(tieneParkingC);
+            JCheckBox tieneTerrazaC = new JCheckBox();
+            filterPanel.add(new JLabel("Tiene Terraza:"));
+            filterPanel.add(tieneTerrazaC);
+            JCheckBox tieneJardinC = new JCheckBox();
+            filterPanel.add(new JLabel("Tiene Jardin:"));
+            filterPanel.add(tieneJardinC);
+            JCheckBox aireAcondC = new JCheckBox();
+            filterPanel.add(new JLabel("Aire Acondicionado:"));
+            filterPanel.add(aireAcondC);
+            JCheckBox amuebladoC = new JCheckBox();
+            filterPanel.add(new JLabel("Amueblado:"));
+            filterPanel.add(amuebladoC);
+            JCheckBox cercaPlayaC = new JCheckBox();
+            filterPanel.add(new JLabel("Cerca Playa:"));
+            filterPanel.add(cercaPlayaC);
 
             JButton btnEnviar = new JButton("Enviar");
 
@@ -218,15 +259,42 @@ public class PresentationUIAgent extends Agent {
                     FiltroVivienda f = new FiltroVivienda();
 
                     // Parse values
-                    try { f.precioMax = Integer.parseInt(precioMaxF.getText().trim()); } catch(Exception ex) {}
-                    try { f.precioMin = Integer.parseInt(precioMinF.getText().trim()); } catch(Exception ex) {}
-                    try { f.precioM2Max = Integer.parseInt(precioM2MaxF.getText().trim()); } catch(Exception ex) {}
-                    try { f.precioM2Min = Integer.parseInt(precioM2MinF.getText().trim()); } catch(Exception ex) {}
-                    try { f.habitacionesMin = Integer.parseInt(habitacionesMinF.getText().trim()); } catch(Exception ex) {}
-                    try { f.banosMin = Integer.parseInt(banosMinF.getText().trim()); } catch(Exception ex) {}
-                    try { f.superficieMin = Integer.parseInt(superficieMinF.getText().trim()); } catch(Exception ex) {}
-                    try { f.superficieMax = Integer.parseInt(superficieMaxF.getText().trim()); } catch(Exception ex) {}
-                    try { f.distanciaAeropuertoMax = Integer.parseInt(distAeroMaxF.getText().trim()); } catch(Exception ex) {}
+                    try {
+                        f.precioMax = Integer.parseInt(precioMaxF.getText().trim());
+                    } catch (Exception ex) {
+                    }
+                    try {
+                        f.precioMin = Integer.parseInt(precioMinF.getText().trim());
+                    } catch (Exception ex) {
+                    }
+                    try {
+                        f.precioM2Max = Integer.parseInt(precioM2MaxF.getText().trim());
+                    } catch (Exception ex) {
+                    }
+                    try {
+                        f.precioM2Min = Integer.parseInt(precioM2MinF.getText().trim());
+                    } catch (Exception ex) {
+                    }
+                    try {
+                        f.habitacionesMin = Integer.parseInt(habitacionesMinF.getText().trim());
+                    } catch (Exception ex) {
+                    }
+                    try {
+                        f.banosMin = Integer.parseInt(banosMinF.getText().trim());
+                    } catch (Exception ex) {
+                    }
+                    try {
+                        f.superficieMin = Integer.parseInt(superficieMinF.getText().trim());
+                    } catch (Exception ex) {
+                    }
+                    try {
+                        f.superficieMax = Integer.parseInt(superficieMaxF.getText().trim());
+                    } catch (Exception ex) {
+                    }
+                    try {
+                        f.distanciaAeropuertoMax = Integer.parseInt(distAeroMaxF.getText().trim());
+                    } catch (Exception ex) {
+                    }
 
                     f.tipo = tipoF.getText().trim().isEmpty() ? null : tipoF.getText().trim();
                     f.ciudad = ciudadF.getText().trim().isEmpty() ? null : ciudadF.getText().trim();
@@ -284,7 +352,7 @@ public class PresentationUIAgent extends Agent {
             lblBanos.setText("Baños: " + v.banos);
 
             String ubi = (v.ciudad != null ? v.ciudad : "") +
-                         (v.zona != null && !v.zona.isEmpty() ? " - " + v.zona : "");
+                    (v.zona != null && !v.zona.isEmpty() ? " - " + v.zona : "");
             lblUbicacion.setText(ubi.isEmpty() ? "Ubicación desconocida" : "Ubicación: " + ubi);
 
             // Toggle arrow states based on bounds
@@ -296,10 +364,21 @@ public class PresentationUIAgent extends Agent {
     private void registrarEnDF() {
         DFAgentDescription descripcion = new DFAgentDescription();
         descripcion.setName(getAID());
+        descripcion.addLanguages("FIPA-SL");
+
+        descripcion.addOntologies("ontologia-inmobiliaria");
+        descripcion.addProtocols("fipa-request");
 
         ServiceDescription servicio = new ServiceDescription();
         servicio.setType("ui");
         servicio.setName(getLocalName());
+        servicio.addOntologies("ontologia-inmobiliaria");
+        servicio.addLanguages("es-ES");
+        servicio.addLanguages("JSON");
+        servicio.addProtocols("fipa-request");
+        Property desc = new Property("Descripción",
+                "Agente encargado de la interfaz gráfica del sistema y de la interacción con el usuario ");
+        servicio.addProperties(desc);
         descripcion.addServices(servicio);
 
         try {
