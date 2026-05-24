@@ -10,6 +10,7 @@ import com.google.gson.JsonParser;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.Property;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
@@ -22,7 +23,7 @@ public class BrokerAgent extends Agent {
     private static final String ESTADO_ESPERAR_ANALISTA = "ESPERAR_ANALISTA";
 
     // Ontología requerida por el Analista.
-    public static final String ONTOLOGY = "ontologia-imobilaria";
+    public static final String ONTOLOGY = "ontologia-inmobiliaria";
 
     private static final String SERVICE_SOURCING = "sourcing";
     private static final String SERVICE_ANALISTA = "analisis-imobilario";
@@ -63,6 +64,7 @@ public class BrokerAgent extends Agent {
 
     public class EsperarUIBehaviour extends OneShotBehaviour {
         private int codigoTransicion;
+
         public void action() {
             System.out.println("[Broker] Esperando interacción en la UI...");
 
@@ -123,7 +125,7 @@ public class BrokerAgent extends Agent {
 
                     codigoTransicion = 0;
                     return;
-                } 
+                }
 
                 imprimirLista(listaViviendas);
 
@@ -184,10 +186,20 @@ public class BrokerAgent extends Agent {
     private void registrarEnDF() {
         DFAgentDescription descripcion = new DFAgentDescription();
         descripcion.setName(getAID());
+        descripcion.addLanguages("FIPA-SL");
+        descripcion.addOntologies(ONTOLOGY);
+        descripcion.addProtocols("fipa-request");
 
         ServiceDescription servicio = new ServiceDescription();
         servicio.setType("broker");
         servicio.setName(getLocalName());
+        servicio.addOntologies(ONTOLOGY);
+        servicio.addLanguages("FIPA-SL");
+        servicio.addLanguages("JSON");
+        servicio.addProtocols("fipa-request");
+        Property desc = new Property("Descripción",
+                "Agente encargado de la comunicación y gestión de los mensajes");
+        servicio.addProperties(desc);
         descripcion.addServices(servicio);
 
         try {

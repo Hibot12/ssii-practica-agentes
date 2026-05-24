@@ -6,6 +6,7 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.Property;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
@@ -322,7 +323,7 @@ public class PresentationUIAgent extends Agent {
             lblBanos.setText("Baños: " + v.banos);
 
             String ubi = (v.ciudad != null ? v.ciudad : "") +
-                         (v.zona != null && !v.zona.isEmpty() ? " - " + v.zona : "");
+                    (v.zona != null && !v.zona.isEmpty() ? " - " + v.zona : "");
             lblUbicacion.setText(ubi.isEmpty() ? "Ubicación desconocida" : "Ubicación: " + ubi);
 
             btnPrev.setEnabled(currentIndex > 0);
@@ -333,10 +334,21 @@ public class PresentationUIAgent extends Agent {
     private void registrarEnDF() {
         DFAgentDescription descripcion = new DFAgentDescription();
         descripcion.setName(getAID());
+        descripcion.addLanguages("FIPA-SL");
+
+        descripcion.addOntologies("ontologia-inmobiliaria");
+        descripcion.addProtocols("fipa-request");
 
         ServiceDescription servicio = new ServiceDescription();
         servicio.setType("ui");
         servicio.setName(getLocalName());
+        servicio.addOntologies("ontologia-inmobiliaria");
+        servicio.addLanguages("es-ES");
+        servicio.addLanguages("JSON");
+        servicio.addProtocols("fipa-request");
+        Property desc = new Property("Descripción",
+                "Agente encargado de la interfaz gráfica del sistema y de la interacción con el usuario ");
+        servicio.addProperties(desc);
         descripcion.addServices(servicio);
 
         try {
