@@ -63,12 +63,12 @@ public class ClasificadorWeka {
             datasetStructure = new Instances(data, 0);
             ready = true;
 
-            System.out.println("[ClasificadorWeka] Model trained successfully.");
-            System.out.println("[ClasificadorWeka] " + tree.toSummaryString());
+            AgentsLogger.info("ClasificadorWeka", "Model trained successfully.");
+            AgentsLogger.info("ClasificadorWeka", tree.toSummaryString());
 
         } catch (Exception e) {
-            System.err.println("[ClasificadorWeka] Failed to train model: " + e.getMessage());
-            System.err.println("[ClasificadorWeka] Will fall back to rule-based classification.");
+            AgentsLogger.severe("ClasificadorWeka", "Failed to train model: " + e.getMessage());
+            AgentsLogger.severe("ClasificadorWeka", "Will fall back to rule-based classification.");
             ready = false;
         }
     }
