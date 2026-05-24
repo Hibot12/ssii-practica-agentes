@@ -7,17 +7,21 @@ import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 
 public class InformationSourcingAgent extends Agent {
 
     List<Vivienda> viviendas;
     ExtractorKyero extractor;
     CyclicBehaviour comportamiento;
+
+    private MessageTemplate filtroPeticion = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
 
     public void setup() {
         registrarEnDF();
@@ -31,13 +35,19 @@ public class InformationSourcingAgent extends Agent {
         }
         comportamiento = new CyclicBehaviour(this) {
             public void action() {
-                ACLMessage mensaje = receive();
+                ACLMessage mensaje = receive(filtroPeticion);
                 if (mensaje != null) {
                     List<Vivienda> resultado = viviendas;
                     String contenido = mensaje.getContent();
                     if (contenido != null && !contenido.isEmpty()) {
-                        FiltroVivienda filtro = new Gson().fromJson(contenido, FiltroVivienda.class);
-                        resultado = extractor.filtrar(viviendas, filtro);
+                        try {
+                            FiltroVivienda filtro = new Gson().fromJson(contenido, FiltroVivienda.class);
+                            if (filtro != null) {
+                                resultado = extractor.filtrar(viviendas, filtro);
+                            }
+                        } catch (JsonSyntaxException e) {
+                            System.out.println("Filtro JSON inválido: " + e.getMessage());
+                        }
                     }
                     ACLMessage respuesta = mensaje.createReply();
                     respuesta.setPerformative(ACLMessage.INFORM);
