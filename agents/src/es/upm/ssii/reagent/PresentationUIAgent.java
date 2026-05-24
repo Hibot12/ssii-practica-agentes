@@ -26,6 +26,7 @@ public class PresentationUIAgent extends Agent {
 
     @Override
     protected void setup() {
+        registrarEnDF();
         SwingUtilities.invokeLater(() -> {
             myGui = new PresentationFrame(this);
             myGui.setVisible(true);
@@ -36,6 +37,11 @@ public class PresentationUIAgent extends Agent {
 
     @Override
     protected void takeDown() {
+        try {
+            DFService.deregister(this);
+        } catch (FIPAException e) {
+            System.out.println("[Broker] Error al borrar registro del DF: " + e.getMessage());
+        }
         System.out.println("Agente UI " + getLocalName() + " terminando.");
         if (myGui != null) {
             myGui.dispose();
@@ -284,6 +290,22 @@ public class PresentationUIAgent extends Agent {
             // Toggle arrow states based on bounds
             btnPrev.setEnabled(currentIndex > 0);
             btnNext.setEnabled(currentIndex < currentResults.size() - 1);
+        }
+    }
+
+    private void registrarEnDF() {
+        DFAgentDescription descripcion = new DFAgentDescription();
+        descripcion.setName(getAID());
+
+        ServiceDescription servicio = new ServiceDescription();
+        servicio.setType("ui");
+        servicio.setName(getLocalName());
+        descripcion.addServices(servicio);
+
+        try {
+            DFService.register(this, descripcion);
+        } catch (FIPAException e) {
+            System.out.println("[Broker] Error al registrar en DF: " + e.getMessage());
         }
     }
 }
