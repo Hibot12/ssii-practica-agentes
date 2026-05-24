@@ -27,4 +27,4 @@ __pycache__/
 *.pyc
 *.pid
 *.err
-.kyero-browser-profile/
+.kyero-browser-profile*/
