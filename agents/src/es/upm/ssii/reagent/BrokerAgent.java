@@ -4,9 +4,6 @@ import jade.core.Agent;
 import jade.core.AID;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -14,11 +11,8 @@ import jade.domain.FIPAAgentManagement.Property;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
-import java.util.logging.Logger;
 
 public class BrokerAgent extends Agent {
-
-    private static final Logger logger = Logger.getLogger(BrokerAgent.class.getName());
 
     // Identificadores de los Estados de la FSM
     private static final String ESTADO_ESPERAR_UI = "ESPERAR_UI";
@@ -37,6 +31,10 @@ public class BrokerAgent extends Agent {
     private AID uiAID;
     private AID sourcingAID;
     private AID analistaAID;
+    private String conversationId;
+    private String uiReplyWith;
+    private String sourcingReplyWith;
+    private String analistaReplyWith;
 
     protected void setup() {
         registrarEnDF();
@@ -77,6 +75,12 @@ public class BrokerAgent extends Agent {
             AgentsLogger.info("Broker","Petición de la UI recibida");
 
             uiAID = mensajeUI.getSender();
+            uiReplyWith = mensajeUI.getReplyWith();
+            // Si el UI no manda conversation-id, generamos uno para correlar la cadena.
+            conversationId = mensajeUI.getConversationId();
+            if (conversationId == null || conversationId.isEmpty()) {
+                conversationId = "broker-" + getLocalName() + "-" + System.currentTimeMillis();
+            }
 
             // Forwarding del mensaje hacia SourcingAgent.
             String jsonFiltroRecibido = mensajeUI.getContent();
@@ -87,9 +91,13 @@ public class BrokerAgent extends Agent {
                 avisarUI(ACLMessage.FAILURE, "No se ha encontrado el agente de sourcing.");
                 codigoTransicion = 0;
             } else {
+                sourcingReplyWith = "broker-src-" + System.currentTimeMillis();
+
                 ACLMessage peticionSourcing = new ACLMessage(ACLMessage.REQUEST);
                 peticionSourcing.addReceiver(sourcingAID);
                 peticionSourcing.setContent(jsonFiltroRecibido);
+                peticionSourcing.setConversationId(conversationId);
+                peticionSourcing.setReplyWith(sourcingReplyWith);
 
                 send(peticionSourcing);
                 AgentsLogger.info("Broker","Filtro enviado a SourcingAgent");
@@ -108,10 +116,14 @@ public class BrokerAgent extends Agent {
         public void action() {
             codigoTransicion = 0;
 
-            // Solo aceptamos el INFORM del sourcing al que hemos preguntado.
+            // Solo aceptamos el INFORM del sourcing que responde a nuestra petición.
             MessageTemplate filtroSourcing = MessageTemplate.and(
-                    MessageTemplate.MatchPerformative(ACLMessage.INFORM),
-                    MessageTemplate.MatchSender(sourcingAID));
+                    MessageTemplate.and(
+                            MessageTemplate.MatchPerformative(ACLMessage.INFORM),
+                            MessageTemplate.MatchSender(sourcingAID)),
+                    MessageTemplate.and(
+                            MessageTemplate.MatchConversationId(conversationId),
+                            MessageTemplate.MatchInReplyTo(sourcingReplyWith)));
 
             ACLMessage listaViviendas = blockingReceive(filtroSourcing);
 
@@ -130,8 +142,6 @@ public class BrokerAgent extends Agent {
                     return;
                 }
 
-                //imprimirLista(listaViviendas);
-
                 analistaAID = buscarAgentePorServicio(SERVICE_ANALISTA);
 
                 if (analistaAID == null) {
@@ -139,11 +149,15 @@ public class BrokerAgent extends Agent {
                     avisarUI(ACLMessage.FAILURE, "No se ha encontrado el agente analista en el DF.");
                     codigoTransicion = 0;
                 } else {
+                    analistaReplyWith = "broker-ana-" + System.currentTimeMillis();
+
                     // Creación del mensaje.
                     ACLMessage peticionAnalista = new ACLMessage(ACLMessage.REQUEST);
                     peticionAnalista.addReceiver(analistaAID);
                     peticionAnalista.setContent(contenido);
                     peticionAnalista.setOntology(ONTOLOGY);
+                    peticionAnalista.setConversationId(conversationId);
+                    peticionAnalista.setReplyWith(analistaReplyWith);
 
                     send(peticionAnalista);
                     AgentsLogger.info("Broker","JSON de viviendas transferido al Analista.");
@@ -166,7 +180,11 @@ public class BrokerAgent extends Agent {
                         MessageTemplate.and(
                                 MessageTemplate.MatchPerformative(ACLMessage.INFORM),
                                 MessageTemplate.MatchOntology(ONTOLOGY)),
-                        MessageTemplate.MatchSender(analistaAID));
+                        MessageTemplate.and(
+                                MessageTemplate.and(
+                                        MessageTemplate.MatchSender(analistaAID),
+                                        MessageTemplate.MatchConversationId(conversationId)),
+                                MessageTemplate.MatchInReplyTo(analistaReplyWith)));
 
                 ACLMessage informeAnalista = blockingReceive(filtroAnalista);
 
@@ -182,6 +200,10 @@ public class BrokerAgent extends Agent {
             uiAID = null;
             sourcingAID = null;
             analistaAID = null;
+            conversationId = null;
+            uiReplyWith = null;
+            sourcingReplyWith = null;
+            analistaReplyWith = null;
             return 1;
         }
     }
@@ -259,31 +281,14 @@ public class BrokerAgent extends Agent {
             mensaje.addReceiver(uiAID);
             mensaje.setContent(contenido);
             mensaje.setOntology(ONTOLOGY);
+            if (conversationId != null) {
+                mensaje.setConversationId(conversationId);
+            }
+            if (uiReplyWith != null) {
+                mensaje.setInReplyTo(uiReplyWith);
+            }
             send(mensaje);
         }
     }
 
-    private void imprimirLista(ACLMessage listaViviendas) {
-        try {
-            AgentsLogger.info("Broker:","[Resultado del Filtrado JSON]:");
-            // Parseamos el texto y lo convertimos a un Array de JSON
-            JsonArray lista = JsonParser.parseString(listaViviendas.getContent()).getAsJsonArray();
-
-            for (int i = 0; i < lista.size(); i++) {
-
-                // Extraemos el objeto en la posición i.
-                JsonObject elemento = lista.get(i).getAsJsonObject();
-
-                // Sacamos los datos individuales.
-                String titulo = elemento.get("titulo").getAsString();
-                int precio = elemento.get("precio").getAsInt();
-
-                // Los imprimimos.
-                AgentsLogger.info("Broker","-> Casa " + i + ": " + titulo + " cuesta " + precio + "€");
-            }
-
-        } catch (Exception e) {
-            AgentsLogger.info("Broker","Error al procesar la lista JSON: " + e.getMessage());
-        }
-    }
 }

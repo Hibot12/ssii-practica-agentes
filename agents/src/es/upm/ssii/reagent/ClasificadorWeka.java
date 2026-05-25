@@ -90,7 +90,7 @@ public class ClasificadorWeka {
             String className = datasetStructure.classAttribute().value((int) prediction);
             return ":" + className;
         } catch (Exception e) {
-            System.err.println("[ClasificadorWeka] Classification error: " + e.getMessage());
+            AgentsLogger.severe("ClasificadorWeka", "Classification error: " + e.getMessage());
             return clasificarFallback(v);
         }
     }

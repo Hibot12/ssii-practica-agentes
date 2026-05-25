@@ -66,7 +66,7 @@ public class InformationSourcingAgent extends Agent {
         DFAgentDescription descripcion = new DFAgentDescription();
         descripcion.setName(getAID());
         descripcion.addLanguages("FIPA-SL");
-        descripcion.addOntologies("ontoloia-inmobiliaria");
+        descripcion.addOntologies("ontologia-inmobiliaria");
         descripcion.addProtocols("fipa-request");
 
         ServiceDescription servicio = new ServiceDescription();

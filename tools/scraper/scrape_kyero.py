@@ -13,7 +13,7 @@ import nodriver as uc
 
 
 BASE_URL = "https://www.kyero.com/es/espana-propiedad-en-venta-0l55529"
-DEFAULT_OUTPUT = Path(__file__).resolve().parents[2] / "agents/src/es/upm/ssii/reagent/viviendas_es.json"
+DEFAULT_OUTPUT = Path(__file__).resolve().parents[2] / "agents/src/es/upm/ssii/reagent/viviendas.json"
 RESIDENTIAL_CATEGORY_URLS = [
     "https://www.kyero.com/es/espana-apartamentos-en-venta-0l55529g1",
     "https://www.kyero.com/es/espana-villas-en-venta-0l55529g2",
