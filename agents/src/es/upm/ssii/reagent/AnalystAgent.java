@@ -2,7 +2,6 @@ package es.upm.ssii.reagent;
 
 //importaciones de jade
 import jade.core.Agent;
-import jade.core.AID;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -39,8 +38,6 @@ public class AnalystAgent extends Agent {
     public static final String SERVICE_TYPE = "analisis-imobilario";
     // el nombre de la ontologia del menasaje
     public static final String ONTOLOGY = "ontologia-inmobiliaria";
-    // el identitificador del servicio del informador a n¡buscar
-    private static final String INFO_SERVICE = "information_sourcing";
     // la ruta del dataset de entrenamiento weka
     private static final String ARRF_RESOURCE_PATH = "viviendas_training.arff";
 
@@ -121,7 +118,7 @@ public class AnalystAgent extends Agent {
         servicio.addLanguages("FIPA-SL");
         servicio.addLanguages("es-ES");
         servicio.addLanguages("en-EN");
-        servicio.addProtocols("fipa_request");
+        servicio.addProtocols("fipa-request");
         Property desc = new Property("Descripción",
                 "Agente de análisis inmobiliario con Weka y Procesador de texto");
         servicio.addProperties(desc);
@@ -183,7 +180,7 @@ public class AnalystAgent extends Agent {
                 StringBuilder allTTL = new StringBuilder();
 
                 // añade las cabeceras estandar de prefijos y ontologías RDF
-                allTTL.append("@prefix : <http://www.ssii.upm.es/inmobliaria#> .\n"); // Prefijo del dominio base de la
+                allTTL.append("@prefix : <http://www.ssii.upm.es/inmobiliaria#> .\n"); // Prefijo del dominio base de la
                                                                                       // práctica
                 allTTL.append("@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"); // Prefijo estándar de
                                                                                                  // tipos RDF
@@ -287,18 +284,6 @@ public class AnalystAgent extends Agent {
             reply.setContent(content);
             send(reply);
 
-        }
-
-        private String buildEmptyResponse() {
-            JSONObject r = new JSONObject();
-            // esto Añade una lista vacia para evitar fallos de lectura en el Broker
-            r.put("resultados", new JSONArray());
-            r.put("total", 0);
-            r.put("ofertas", 0);
-            r.put("normales", 0);
-            r.put("paraReformar", 0);
-            r.put("descartados", 0);
-            return r.toString(); // esto devuelve la cadena JSON serializada de seguridad
         }
 
         // este es el adaptador para traducir el modelo Gson a objetos dinámicos de

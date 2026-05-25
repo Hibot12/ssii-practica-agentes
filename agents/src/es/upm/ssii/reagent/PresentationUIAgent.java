@@ -43,7 +43,7 @@ public class PresentationUIAgent extends Agent {
         } catch (FIPAException e) {
             AgentsLogger.severe("UI", "Error al borrar registro del DF: " + e.getMessage());
         }
-        AgentsLogger.severe("UI",getLocalName() + " terminando.");
+        AgentsLogger.info("UI", getLocalName() + " terminando.");
         if (myGui != null) {
             myGui.dispose();
         }
@@ -65,12 +65,21 @@ public class PresentationUIAgent extends Agent {
             AID broker = searchForBroker();
 
             if (broker != null) {
+                long timestamp = System.currentTimeMillis();
+                String convId = "ui-" + myAgent.getLocalName() + "-" + timestamp;
+                String replyWith = "ui-req-" + timestamp;
                 ACLMessage req = new ACLMessage(ACLMessage.REQUEST);
                 req.addReceiver(broker);
                 req.setContent(userInput);
+                req.setConversationId(convId);
+                req.setReplyWith(replyWith);
                 myAgent.send(req);
 
-                MessageTemplate mt = MessageTemplate.MatchSender(broker);
+                MessageTemplate mt = MessageTemplate.and(
+                        MessageTemplate.and(
+                                MessageTemplate.MatchSender(broker),
+                                MessageTemplate.MatchConversationId(convId)),
+                        MessageTemplate.MatchInReplyTo(replyWith));
                 ACLMessage reply = myAgent.blockingReceive(mt);
 
                 if (reply != null) {

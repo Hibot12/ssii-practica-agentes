@@ -80,7 +80,7 @@ public class ClasificadorWeka {
             String className = datasetStructure.classAttribute().value((int) prediction);
             return ":" + className; // retronamos el nombre con el prefijo de ontologia
         } catch (Exception e) {
-            System.err.println("ClasificadorWeka:  Error de clasificacion: " + e.getMessage());
+            AgentsLogger.severe("ClasificadorWeka", "Classification error: " + e.getMessage());
             return clasificarFallback(v);
         }
     }

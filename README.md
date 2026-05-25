@@ -35,7 +35,7 @@ Los datos son generados por el scraper (tools/scraper).
 
 ## Diagrama de la arquitectura del sistema
 
-<img alt="Diagrama de la arquitectura del sistema" src="https://github.com/user-attachments/assets/b3449801-6400-4760-8d85-861c34843224" />
+<img alt="Diagrama de la arquitectura del sistema" src="https://github.com/user-attachments/assets/dc3af957-8e9b-4b5d-bd63-69176db1a793" />
 
 ## Declaración de IA
 
