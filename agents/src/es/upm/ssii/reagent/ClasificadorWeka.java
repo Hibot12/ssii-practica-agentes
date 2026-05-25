@@ -12,152 +12,134 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Weka-based classifier for real estate properties.
- *
- * Trains a J48 decision tree on startup from an ARFF file, then classifies
- * individual Vivienda objects into one of four ontology classes:
- * :Oferta — good investment opportunity
- * :Vivienda — normal property, fair price
- * :ParaReformar — cheap but needs renovation
- * :Descartado — overpriced or unviable
- *
- * The prediction is returned as ":Oferta", ":Vivienda", etc. to match
- * the ontology prefixes used by ProcesadorTexto.
- *
- * Usage:
- * ClasificadorWeka clf = new ClasificadorWeka("data/viviendas_training.arff");
- * String clase = clf.clasificar(viviendaJson);
- */
+//esto es el clasificador de weka
 public class ClasificadorWeka {
-
+    //declaramos el modelo del arbol de decision
     private J48 tree;
-    private Instances datasetStructure;
+    private Instances datasetStructure; //esto guarda la estructura de datos
+    //ahora creamos un flag, para saber si el modelo esta listo
     private boolean ready = false;
 
-    // The class values matching the ontology
+    //la lista de constantes, de los possibles valores de la clasificacion
     private static final List<String> CLASSES = Arrays.asList(
             "Oferta", "Vivienda", "ParaReformar", "Descartado");
-
-    /**
-     * Loads training data and builds the J48 decision tree.
-     *
-     * @param arffStream stream of the ARFF training file
-     */
+    //esto es el metodo constructor que recibe el archivo de entrenamiento
     public ClasificadorWeka(InputStream arffStream) {
         try {
+            //cargamos la fuente de datos desde el flujo
             DataSource source = new DataSource(arffStream);
+            //extraemos el conjunto de datos completo
             Instances data = source.getDataSet();
 
-            // Last attribute is the class
+            //ahora establecemos el ultimo atributo como la clase a predecir
             data.setClassIndex(data.numAttributes() - 1);
 
-            // Train J48 decision tree
+            //inicializamos el arbol
             tree = new J48();
+            //incializamos el arbol para que usa pruning y que no haya oferfitting en el arbol
             tree.setUnpruned(false);
+            //setteamos la confianca a 25% porque es el estandar y para que hay pruning para que no crea ramas para cosas especificas
             tree.setConfidenceFactor(0.25f);
+            //ahora setteamos el numero min de objetos por hoja del arbol a 2,
+            //solo deberia crear una regla en el arbol, solo en el caso de que esa regla aplica a 2 objetos como minimo
             tree.setMinNumObj(2);
-            tree.buildClassifier(data);
+            tree.buildClassifier(data);//entrenamos el modelo con los datos
 
-            // Keep the structure for building new instances
+
+            //guardamos solo las cabeceras
             datasetStructure = new Instances(data, 0);
-            ready = true;
+            ready = true; //lo ponemos a true para que se puede utilizar el modelo
 
+            //esto registra si se entreno con exito o no
             AgentsLogger.info("ClasificadorWeka", "Model trained successfully.");
+            //el resumen del arbol
             AgentsLogger.info("ClasificadorWeka", tree.toSummaryString());
 
         } catch (Exception e) {
+            //en el caso que no se entreno con exito
             AgentsLogger.severe("ClasificadorWeka", "Failed to train model: " + e.getMessage());
             AgentsLogger.severe("ClasificadorWeka", "Will fall back to rule-based classification.");
             ready = false;
         }
     }
 
-    /**
-     * Classifies a Vivienda based on its numeric/boolean features.
-     *
-     * @return ontology class string: ":Oferta", ":Vivienda", ":ParaReformar", or
-     *         ":Descartado"
-     */
+   //esto es el metodo para clasificar una sola vivienda
     public String clasificar(Vivienda v) {
         if (!ready) {
+            //si no se puede utilizar el model utizamos el metodo manual basado en reglas
             return clasificarFallback(v);
         }
 
         try {
+            //convertimos el objeto vivienda al formato de weka
             Instance instance = buildInstance(v);
+            //obtenemos el indice numerico de su prediccion
             double prediction = tree.classifyInstance(instance);
+            //traducimos el nombre de la clase
             String className = datasetStructure.classAttribute().value((int) prediction);
-            return ":" + className;
+            return ":" + className; //retronamos el nombre con el prefijo de ontologia
         } catch (Exception e) {
-            System.err.println("[ClasificadorWeka] Classification error: " + e.getMessage());
+            System.err.println("ClasificadorWeka:  Error de clasificacion: " + e.getMessage());
             return clasificarFallback(v);
         }
     }
 
-    /**
-     * Returns the probability distribution across all classes.
-     * Useful for the AnalystAgent to show confidence levels.
-     *
-     * @return array of [Oferta_prob, Vivienda_prob, ParaReformar_prob,
-     *         Descartado_prob]
-     */
+    //ahora creamos la clase para obtener las probabilidades de cada clase
     public double[] distribucion(Vivienda v) {
         if (!ready) {
+            //devolvemos probabilidades equitativas para cada uno
             return new double[] { 0.25, 0.25, 0.25, 0.25 };
         }
         try {
+            //intentamos calcular la distribucion
+            //convertimos al formato de weka
             Instance instance = buildInstance(v);
+            //Retornamos el array de probabilidades del árbol
             return tree.distributionForInstance(instance);
         } catch (Exception e) {
             return new double[] { 0.25, 0.25, 0.25, 0.25 };
         }
     }
 
-    /**
-     * Builds a Weka Instance from a Vivienda object, matching the ARFF attributes.
-     */
+    //este metodo sirve para transformar vivienda a instancia de weka
     private Instance buildInstance(Vivienda v) {
+        //creamos la instancia vacia con el tamaño correcto
         Instance inst = new DenseInstance(datasetStructure.numAttributes());
         inst.setDataset(datasetStructure);
 
-        inst.setValue(0, v.precioM2); // precioM2
-        inst.setValue(1, v.superficieM2); // superficieM2
-        inst.setValue(2, v.habitaciones); // habitaciones
-        inst.setValue(3, v.banos); // banos
-        inst.setValue(4, v.tienePiscina ? "true" : "false"); // tienePiscina
-        inst.setValue(5, v.tieneTerraza ? "true" : "false"); // tieneTerraza
-        inst.setValue(6, v.tieneParking ? "true" : "false"); // tieneParking
-        inst.setValue(7, v.tieneJardin ? "true" : "false"); // tieneJardin
-        inst.setValue(8, v.aireAcondicionado ? "true" : "false"); // aireAcondicionado
-        inst.setValue(9, v.cercaPlaya ? "true" : "false"); // cercaPlaya
-        inst.setValue(10, v.distanciaAeropuertoKm); // distanciaAeropuertoKm
-
+        inst.setValue(0, v.precioM2);
+        inst.setValue(1, v.superficieM2);
+        inst.setValue(2, v.habitaciones);
+        inst.setValue(3, v.banos);
+        inst.setValue(4, v.tienePiscina ? "true" : "false");
+        inst.setValue(5, v.tieneTerraza ? "true" : "false");
+        inst.setValue(6, v.tieneParking ? "true" : "false");
+        inst.setValue(7, v.tieneJardin ? "true" : "false");
+        inst.setValue(8, v.aireAcondicionado ? "true" : "false");
+        inst.setValue(9, v.cercaPlaya ? "true" : "false");
+        inst.setValue(10, v.distanciaAeropuertoKm);
         return inst;
     }
 
-    /**
-     * Rule-based fallback when Weka model is not available.
-     * Uses simple thresholds that approximate the decision tree.
-     */
+    //esto es el clasificador manual de fallback, por tener algo aunque no tenga mucho sentido pero bueno
+    //durante la presentacion se utiliza el model no el fallback
     private String clasificarFallback(Vivienda v) {
-        // Descartado: tiny or extremely overpriced
+        //las Descartadamos si son muy pequeñas o super caras:
         if (v.superficieM2 < 35 || v.precioM2 > 4000) {
             return ":Descartado";
         }
-        // ParaReformar: very cheap per m2, few amenities
+        //ParaReformar: si es muy barata y sin apenas extras entonces deberiamos reformarla
         int amenities = countAmenities(v);
         if (v.precioM2 < 650 && amenities <= 1) {
             return ":ParaReformar";
         }
-        // Oferta: good price with decent features
+        //Si el precio es bueno y tiene bastantes extras
         if (v.precioM2 < 1000 && amenities >= 3) {
             return ":Oferta";
         }
         if (v.precioM2 < 1200 && amenities >= 5) {
             return ":Oferta";
         }
-        // Default
         return ":Vivienda";
     }
 
@@ -184,10 +166,7 @@ public class ClasificadorWeka {
         return ready;
     }
 
-    /**
-     * Returns the trained decision tree as a human-readable string.
-     * Useful for the presentation — you can show the tree structure.
-     */
+    //este es el metodo para obtener el arbol en formato texto
     public String getTreeDescription() {
         if (!ready)
             return "Model not available";
