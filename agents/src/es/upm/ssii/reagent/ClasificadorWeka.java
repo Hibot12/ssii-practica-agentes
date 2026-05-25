@@ -42,7 +42,7 @@ public class ClasificadorWeka {
             tree.setConfidenceFactor(0.25f);
             //ahora setteamos el numero min de objetos por hoja del arbol a 2,
             //solo deberia crear una regla en el arbol, solo en el caso de que esa regla aplica a 2 objetos como minimo
-            tree.setMinNumObj(2);
+            tree.setMinNumObj(4);
             tree.buildClassifier(data);//entrenamos el modelo con los datos
 
 
