@@ -135,15 +135,15 @@ public class ClasificadorWeka {
         int ajusteCalidad = ratioBanos >= 0.5 ? 250 : (ratioBanos <= 0.33 ? -300 : 0);
         int ajusteTamano = v.superficieM2 < 50 ? 200 : (v.superficieM2 > 150 ? -150 : 0);
 
-        int sumaValoraciones = 1200 + valPlaya + valPiscina + valParking + valExterior +
+        int sumaValoraciones = 1600 + valPlaya + valPiscina + valParking + valExterior +
                 valAA + penAero + ajusteCalidad + ajusteTamano;
         double precioEsperado = Math.max(600.0, sumaValoraciones);
 
         double desv = (v.precioM2 - precioEsperado) / precioEsperado;
 
-        if (desv > 0.35 || (v.habitaciones >= 4 && v.banos == 1)) {
+        if (desv > 0.4 || (v.habitaciones >= 4 && v.banos == 1)) {
             return ":Descartado";
-        } else if (desv < -0.35 && v.precioM2 < 1500 && !v.aireAcondicionado) {
+        } else if (desv < -0.2 && v.precioM2 < 1500 && !v.aireAcondicionado) {
             return ":ParaReformar";
         } else if (desv < -0.10 && ratioBanos <= 0.33 && !v.tieneParking && !v.tienePiscina) {
             return ":ParaReformar";
