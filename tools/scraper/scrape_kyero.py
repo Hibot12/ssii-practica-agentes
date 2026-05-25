@@ -776,15 +776,22 @@ async def run(args) -> int:
     profile_path = Path(args.user_data_dir).resolve()
     profile_path.mkdir(parents=True, exist_ok=True)
 
+    browser_args = [
+        "--disable-blink-features=AutomationControlled",
+        "--window-size=1365,900",
+    ]
+    if args.proxy_server:
+        browser_args.append(f"--proxy-server={args.proxy_server}")
+        if args.proxy_bypass:
+            browser_args.append(f"--proxy-bypass-list={args.proxy_bypass}")
+        print(f"[proxy] usando {args.proxy_server}", flush=True)
+
     browser = await uc.start(
         headless=not args.headed,
         browser_executable_path=browser_path,
         user_data_dir=str(profile_path),
         lang="es-ES",
-        browser_args=[
-            "--disable-blink-features=AutomationControlled",
-            "--window-size=1365,900",
-        ],
+        browser_args=browser_args,
     )
 
     try:
@@ -907,6 +914,17 @@ def build_parser():
     parser.add_argument("--browser-path")
     parser.add_argument("--user-data-dir", default=".kyero-browser-profile")
     parser.add_argument("--headed", action="store_true")
+    parser.add_argument(
+        "--proxy-server",
+        help='Proxy a usar para todas las peticiones del navegador. '
+             'Formatos: "http://host:puerto", "socks5://host:puerto". '
+             'Para auth Chrome solo acepta IP whitelist en el proveedor (no user:pass en URL).',
+    )
+    parser.add_argument(
+        "--proxy-bypass",
+        help='Lista separada por ";" de hosts que no pasan por el proxy '
+             '(p.ej. "localhost;127.0.0.1").',
+    )
     return parser
 
 
