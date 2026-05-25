@@ -265,7 +265,7 @@ public class BrokerAgent extends Agent {
 
     private void imprimirLista(ACLMessage listaViviendas) {
         try {
-            AgentsLogger.info("Brokerf:","[Resultado del Filtrado JSON]:");
+            AgentsLogger.info("Broker:","[Resultado del Filtrado JSON]:");
             // Parseamos el texto y lo convertimos a un Array de JSON
             JsonArray lista = JsonParser.parseString(listaViviendas.getContent()).getAsJsonArray();
 

@@ -253,7 +253,7 @@ public class AnalystAgent extends Agent {
                     }
                 }
                 AgentsLogger.info("AnalystAgent", String.format(
-                        "AnalysisAgent: Acabado: %d Ofertas, %d Viviendas, %d ParaReformar, %d Descartados%n",
+                        "Acabado: %d Ofertas, %d Viviendas, %d ParaReformar, %d Descartados%n",
                         ofertas, normales, reforma, descartados));
                 JSONObject response = new JSONObject();
                 response.put("resultados", resultsArray);
