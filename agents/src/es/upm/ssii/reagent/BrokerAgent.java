@@ -32,6 +32,9 @@ public class BrokerAgent extends Agent {
     private AID sourcingAID;
     private AID analistaAID;
     private String conversationId;
+    private String uiReplyWith;
+    private String sourcingReplyWith;
+    private String analistaReplyWith;
 
     protected void setup() {
         registrarEnDF();
@@ -72,6 +75,7 @@ public class BrokerAgent extends Agent {
             AgentsLogger.info("Broker","Petición de la UI recibida");
 
             uiAID = mensajeUI.getSender();
+            uiReplyWith = mensajeUI.getReplyWith();
             // Si el UI no manda conversation-id, generamos uno para correlar la cadena.
             conversationId = mensajeUI.getConversationId();
             if (conversationId == null || conversationId.isEmpty()) {
@@ -87,10 +91,13 @@ public class BrokerAgent extends Agent {
                 avisarUI(ACLMessage.FAILURE, "No se ha encontrado el agente de sourcing.");
                 codigoTransicion = 0;
             } else {
+                sourcingReplyWith = "broker-src-" + System.currentTimeMillis();
+
                 ACLMessage peticionSourcing = new ACLMessage(ACLMessage.REQUEST);
                 peticionSourcing.addReceiver(sourcingAID);
                 peticionSourcing.setContent(jsonFiltroRecibido);
                 peticionSourcing.setConversationId(conversationId);
+                peticionSourcing.setReplyWith(sourcingReplyWith);
 
                 send(peticionSourcing);
                 AgentsLogger.info("Broker","Filtro enviado a SourcingAgent");
@@ -109,12 +116,14 @@ public class BrokerAgent extends Agent {
         public void action() {
             codigoTransicion = 0;
 
-            // Solo aceptamos el INFORM del sourcing de esta misma conversación.
+            // Solo aceptamos el INFORM del sourcing que responde a nuestra petición.
             MessageTemplate filtroSourcing = MessageTemplate.and(
                     MessageTemplate.and(
                             MessageTemplate.MatchPerformative(ACLMessage.INFORM),
                             MessageTemplate.MatchSender(sourcingAID)),
-                    MessageTemplate.MatchConversationId(conversationId));
+                    MessageTemplate.and(
+                            MessageTemplate.MatchConversationId(conversationId),
+                            MessageTemplate.MatchInReplyTo(sourcingReplyWith)));
 
             ACLMessage listaViviendas = blockingReceive(filtroSourcing);
 
@@ -140,12 +149,15 @@ public class BrokerAgent extends Agent {
                     avisarUI(ACLMessage.FAILURE, "No se ha encontrado el agente analista en el DF.");
                     codigoTransicion = 0;
                 } else {
+                    analistaReplyWith = "broker-ana-" + System.currentTimeMillis();
+
                     // Creación del mensaje.
                     ACLMessage peticionAnalista = new ACLMessage(ACLMessage.REQUEST);
                     peticionAnalista.addReceiver(analistaAID);
                     peticionAnalista.setContent(contenido);
                     peticionAnalista.setOntology(ONTOLOGY);
                     peticionAnalista.setConversationId(conversationId);
+                    peticionAnalista.setReplyWith(analistaReplyWith);
 
                     send(peticionAnalista);
                     AgentsLogger.info("Broker","JSON de viviendas transferido al Analista.");
@@ -169,8 +181,10 @@ public class BrokerAgent extends Agent {
                                 MessageTemplate.MatchPerformative(ACLMessage.INFORM),
                                 MessageTemplate.MatchOntology(ONTOLOGY)),
                         MessageTemplate.and(
-                                MessageTemplate.MatchSender(analistaAID),
-                                MessageTemplate.MatchConversationId(conversationId)));
+                                MessageTemplate.and(
+                                        MessageTemplate.MatchSender(analistaAID),
+                                        MessageTemplate.MatchConversationId(conversationId)),
+                                MessageTemplate.MatchInReplyTo(analistaReplyWith)));
 
                 ACLMessage informeAnalista = blockingReceive(filtroAnalista);
 
@@ -187,6 +201,9 @@ public class BrokerAgent extends Agent {
             sourcingAID = null;
             analistaAID = null;
             conversationId = null;
+            uiReplyWith = null;
+            sourcingReplyWith = null;
+            analistaReplyWith = null;
             return 1;
         }
     }
@@ -266,6 +283,9 @@ public class BrokerAgent extends Agent {
             mensaje.setOntology(ONTOLOGY);
             if (conversationId != null) {
                 mensaje.setConversationId(conversationId);
+            }
+            if (uiReplyWith != null) {
+                mensaje.setInReplyTo(uiReplyWith);
             }
             send(mensaje);
         }

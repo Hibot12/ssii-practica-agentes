@@ -65,16 +65,21 @@ public class PresentationUIAgent extends Agent {
             AID broker = searchForBroker();
 
             if (broker != null) {
-                String convId = "ui-" + myAgent.getLocalName() + "-" + System.currentTimeMillis();
+                long timestamp = System.currentTimeMillis();
+                String convId = "ui-" + myAgent.getLocalName() + "-" + timestamp;
+                String replyWith = "ui-req-" + timestamp;
                 ACLMessage req = new ACLMessage(ACLMessage.REQUEST);
                 req.addReceiver(broker);
                 req.setContent(userInput);
                 req.setConversationId(convId);
+                req.setReplyWith(replyWith);
                 myAgent.send(req);
 
                 MessageTemplate mt = MessageTemplate.and(
-                        MessageTemplate.MatchSender(broker),
-                        MessageTemplate.MatchConversationId(convId));
+                        MessageTemplate.and(
+                                MessageTemplate.MatchSender(broker),
+                                MessageTemplate.MatchConversationId(convId)),
+                        MessageTemplate.MatchInReplyTo(replyWith));
                 ACLMessage reply = myAgent.blockingReceive(mt);
 
                 if (reply != null) {
