@@ -2,21 +2,9 @@ package es.upm.ssii.reagent;
 
 import org.json.JSONObject;
 
-/**
- * NLP-style text processor for property descriptions.
- *
- * Analyzes the free-text description field using keyword matching
- * (bilingual: English + Spanish, since Kyero data has English descriptions).
- *
- * Generates a score that can override the Weka ML prediction, and outputs
- * RDF/TTL triples conforming to ontologia_inmobiliaria.ttl.
- *
- * Classification hierarchy (from ontology):
- * :Vivienda — base class (normal property)s
- * :Oferta — good deal (subclass of Vivienda)
- * :ParaReformar — needs renovation (subclass of Vivienda)
- * :Descartado — avoid (subclass of Vivienda)
- */
+/*Clase para repasar el filtro de Weka y que no pasen 
+errores analizando la descripción de los pisos*/
+
 public class ProcesadorTexto {
 
     public String procesarVivienda(JSONObject jsonVivienda, String prediccionWeka) {
@@ -39,7 +27,7 @@ public class ProcesadorTexto {
         boolean filtro = false;
         boolean necesitaReforma = false;
 
-        // ── Discard filters (Spanish + English) ──
+        // Búsqueda de palabas que mandan el piso directamente a descarte
         if (descripcion.contains("okupa") || descripcion.contains("squat")
                 || descripcion.contains("derribo") || descripcion.contains("demolish")
                 || descripcion.contains("subasta") || descripcion.contains("auction")
@@ -48,7 +36,10 @@ public class ProcesadorTexto {
             filtro = true;
         }
 
-        // ── Reform detection (Spanish + English) ──
+        /*
+         * Búsquedas de palabras que denotan que un piso necesita reforma o que esta
+         * reformado
+         */
         boolean paraReformar = descripcion.contains("para reformar")
                 || descripcion.contains("to renovate") || descripcion.contains("to refurbish")
                 || descripcion.contains("renovation needed") || descripcion.contains("needs updating")
@@ -64,6 +55,7 @@ public class ProcesadorTexto {
                 || descripcion.contains("newly built") || descripcion.contains("turnkey")
                 || descripcion.contains("modern design") || descripcion.contains("high standard");
 
+        // Ajuste de puntuación para pisos que están reformados o necesitan reforma
         if (paraReformar && !reformado) {
             necesitaReforma = true;
             puntuacionNLP -= 20;
@@ -71,7 +63,7 @@ public class ProcesadorTexto {
             puntuacionNLP += 20;
         }
 
-        // ── Positive keywords (Spanish + English) ──
+        // Búsqueda de palabras positivas que suben la puntuación global del piso
         if (descripcion.contains("luminoso") || descripcion.contains("luz natural")
                 || descripcion.contains("bright") || descripcion.contains("natural light")
                 || descripcion.contains("sun-drenched") || descripcion.contains("light-filled")) {
@@ -106,7 +98,7 @@ public class ProcesadorTexto {
             puntuacionNLP += 5;
         }
 
-        // ── Negative signals ──
+        // Búsqueda de palabras negativas que bajan la puntuación global del piso
         if (descripcion.contains("tenant") || descripcion.contains("occupied")
                 || descripcion.contains("inquilino")) {
             puntuacionNLP -= 10;
@@ -115,7 +107,8 @@ public class ProcesadorTexto {
             puntuacionNLP -= 5;
         }
 
-        // ── Final classification: Weka prediction modified by NLP score ──
+        // Accede a la predicción hecha por la ML y ajusta la clase en función a la
+        // puntuación calculada
         String claseAsig = prediccionWeka;
 
         if (filtro) {
@@ -128,12 +121,12 @@ public class ProcesadorTexto {
             claseAsig = ":Vivienda";
         }
 
-        // Ensure prefix
+        // Asegura que las clases sigan la estructura de la ontología
         if (!claseAsig.startsWith(":")) {
             claseAsig = ":" + claseAsig;
         }
 
-        // ── Generate TTL triples ──
+        // Genera las tripletas de la ontología
         StringBuilder ttl = new StringBuilder();
 
         ttl.append(":").append(id).append(" rdf:type ").append(claseAsig).append(" ;\n");
@@ -154,40 +147,38 @@ public class ProcesadorTexto {
         return ttl.toString();
     }
 
-    /**
-     * Returns just the NLP score without generating TTL.
-     * Useful when the AnalystAgent wants the score separately.
-     */
+    // Puntuación del piso sin generar la ontlogía en caso de que el analista lo
+    // necesite
     public int calcularPuntuacionNLP(String descripcion) {
         if (descripcion == null)
             return 0;
         descripcion = descripcion.toLowerCase();
         int score = 0;
 
-        // Positive
+        // Rasgos positivos
         if (descripcion.contains("bright") || descripcion.contains("luminoso"))
             score += 10;
         if (descripcion.contains("spacious") || descripcion.contains("amplio"))
             score += 10;
-        if (descripcion.contains("sea view") || descripcion.contains("panoramic"))
+        if (descripcion.contains("sea view") || descripcion.contains("vista al mar"))
             score += 10;
-        if (descripcion.contains("renovated") || descripcion.contains("new build"))
+        if (descripcion.contains("renovado") || descripcion.contains("nueva construcción"))
             score += 20;
-        if (descripcion.contains("quiet") || descripcion.contains("peaceful"))
+        if (descripcion.contains("silencioso") || descripcion.contains("sin ruido"))
             score += 5;
-        if (descripcion.contains("investment") || descripcion.contains("rental"))
+        if (descripcion.contains("inversion") || descripcion.contains("alquiler"))
             score += 10;
-        if (descripcion.contains("luxury") || descripcion.contains("exclusive"))
+        if (descripcion.contains("lujo") || descripcion.contains("exclusivo"))
             score += 5;
 
-        // Negative
-        if (descripcion.contains("reform") || descripcion.contains("project"))
+        // Rasgos negativos
+        if (descripcion.contains(" necesita reforma") || descripcion.contains("project"))
             score -= 15;
-        if (descripcion.contains("ruin") || descripcion.contains("dated"))
+        if (descripcion.contains("ruina") || descripcion.contains("antiguo"))
             score -= 20;
-        if (descripcion.contains("squat") || descripcion.contains("demolish"))
+        if (descripcion.contains("squat") || descripcion.contains("demolicion"))
             score -= 50;
-        if (descripcion.contains("tenant") || descripcion.contains("occupied"))
+        if (descripcion.contains("okupa") || descripcion.contains("occupied"))
             score -= 10;
 
         return score;
