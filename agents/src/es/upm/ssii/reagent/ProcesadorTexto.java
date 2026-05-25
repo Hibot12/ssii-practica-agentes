@@ -145,11 +145,10 @@ public class ProcesadorTexto {
         ttl.append("    :tienePiscina \"").append(tienePiscina).append("\"^^xsd:boolean ;\n");
         ttl.append("    :tieneTerraza \"").append(tieneTerraza).append("\"^^xsd:boolean ;\n");
         ttl.append("    :cercaPlaya \"").append(cercaPlaya).append("\"^^xsd:boolean ;\n");
-        ttl.append("    :distanciaAeropuertoKm \"").append(distanciaAero).append("\"^^xsd:decimal .\n\n");
+        ttl.append("    :distanciaAeropuerto \"").append(distanciaAero).append("\"^^xsd:decimal .\n\n");
 
         ttl.append(":").append(id).append(" :tieneUbicacion :Ubicacion_").append(id).append(" .\n");
-        ttl.append(":Ubicacion_").append(id).append(" :ciudad \"").append(ciudad).append("\"^^xsd:string .\n");
-        ttl.append("--------------------------------------------------\n");
+        ttl.append(":Ubicacion_").append(id).append(" :ciudad \"").append(ciudad).append("\"^^xsd:string .\n\n");
 
         return ttl.toString();
     }

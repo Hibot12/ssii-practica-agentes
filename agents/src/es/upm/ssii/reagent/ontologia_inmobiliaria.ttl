@@ -1,4 +1,4 @@
-@prefix : <http://www.ssii.upm.es/inmobliaria#> .
+@prefix : <http://www.ssii.upm.es/inmobiliaria#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
@@ -48,8 +48,12 @@
     rdfs:range xsd:boolean .
 
 :tieneTerraza rdf:type owl:DatatypeProperty ;
-    rdfs:domain :Vivienda;
-    rdfs:range xsd:boolean.
+    rdfs:domain :Vivienda ;
+    rdfs:range xsd:boolean .
+
+:cercaPlaya rdf:type owl:DatatypeProperty ;
+    rdfs:domain :Vivienda ;
+    rdfs:range xsd:boolean .
 
 :distanciaAeropuerto rdf:type owl:DatatypeProperty ;
     rdfs:domain :Vivienda ;
