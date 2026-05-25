@@ -28,3 +28,7 @@ __pycache__/
 *.pid
 *.err
 .kyero-browser-profile*/
+
+# Archivos temporales de la plataforma JADE
+APDescription.txt
+MTPs-Main-Container.txt

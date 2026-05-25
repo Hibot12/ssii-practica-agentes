@@ -53,22 +53,22 @@ public class AnalystAgent extends Agent {
     // ahora el ciclo de vida del agente
     @Override
     protected void setup() {
-        System.out.println("AnalystAgent " + getLocalName() + ": Iniciando...");
+        AgentsLogger.info("AnalystAgent", getLocalName() + ": Iniciando...");
         // creamos el objeto de procesamiento de lenguaje natural
         procesadorTexto = new ProcesadorTexto();
         // pasamos el path al clasificador de weka
         clasificador = new ClasificadorWeka(abrirResourceArff(ARRF_RESOURCE_PATH));
         // verificamos que el modelo se entreno con exito
         if (clasificador.isReady()) {
-            System.out.println("AnalystAgent: Weka J48 model trained OK");
+            AgentsLogger.info("AnalystAgent", "Weka J48 model trained OK");
         } else {// por si fallan
-            System.out.println("AnalystAgent: Weka no esta disponible");
+            AgentsLogger.info("AnalystAgent", "Weka no esta disponible");
         }
         // llamamos el metodo interno para anunciar las capacidades del agente en el DF
         registarEnDf();
         // Añadimos y activamos el comportamiento principal para procesar peticiones
         addBehaviour(new HandleRequests());
-        System.out.println("AnalystAgent " + getLocalName() + ": Listo");
+        AgentsLogger.info("AnalystAgent", getLocalName() + ": Listo");
     }
 
     // el metodo para quitar el agente
@@ -77,7 +77,7 @@ public class AnalystAgent extends Agent {
         try {
             DFService.deregister(this);
         } catch (FIPAException ignored) {
-            System.out.println("AnalysisAgent " + getLocalName() + ": Eliminado");
+            AgentsLogger.info("AnalystAgent", getLocalName() + ": Eliminado");
         }
     }
 
@@ -96,7 +96,7 @@ public class AnalystAgent extends Agent {
                 try {
                     stream = new FileInputStream(p.toFile());
                 } catch (Exception e) {
-                    System.out.println("AnalystAgent: error abriendo " + p + ": " + e.getMessage());
+                    AgentsLogger.info("AnalystAgent", "error abriendo " + p + ": " + e.getMessage());
                 }
             }
             i++;
@@ -130,9 +130,9 @@ public class AnalystAgent extends Agent {
         try { // bloque de seguridad
               // Publicamos la desc del agente a las paginas amarillas de JADE
             DFService.register(this, descripcion);
-            System.out.println("AnalystAgent: Registrado en el DF '" + SERVICE_TYPE + "'");
+            AgentsLogger.info("AnalystAgent", "Registrado en el DF '" + SERVICE_TYPE + "'");
         } catch (FIPAException e) {
-            System.err.println("AnaystAgent: DF error: " + e.getMessage());
+            AgentsLogger.severe("AnalystAgent", "DF error: " + e.getMessage());
         }
     }
 
@@ -157,7 +157,7 @@ public class AnalystAgent extends Agent {
                 // Extraemos el JSON gigante que nos acaba de mandar el Broker con todas las
                 // casas
                 String jsonDelBroker = request.getContent();
-                System.out.println("AnalystAgent: Request de " + request.getSender().getLocalName());
+                AgentsLogger.info("AnalystAgent", "Request de " + request.getSender().getLocalName());
 
                 // Convertimos el JSON del Broker directamente a nuestra lista de viviendas (sin
                 // buscar al Informador)
@@ -167,16 +167,16 @@ public class AnalystAgent extends Agent {
                     }.getType();
                     viviendas = gson.fromJson(jsonDelBroker, listType);
                 } catch (Exception e) {
-                    System.err.println("AnalystAgent: Error convirtiendo el JSON del Broker - " + e.getMessage());
+                    AgentsLogger.severe("AnalystAgent", "Error convirtiendo el JSON del Broker - " + e.getMessage());
                 }
                 // comprobamos que no este vacia
                 if (viviendas == null || viviendas.isEmpty()) {
                     // enviamos un mensaje estructurada vacia para no romber el broker
-                    System.out.println("AnalystAgent: No hay viviendas para analizar");
+                    AgentsLogger.info("AnalystAgent", "No hay viviendas para analizar");
                     return;
                 }
 
-                System.out.println("AnalystAgent: Analizando " + viviendas.size() + " viviendas...");
+                AgentsLogger.info("AnalystAgent", "Analizando " + viviendas.size() + " viviendas...");
                 // una lista vacia para acumular los JSON resumen individuales
                 JSONArray resultsArray = new JSONArray();
                 // y ahora para acumular el código RDF/TTL
@@ -249,12 +249,12 @@ public class AnalystAgent extends Agent {
 
                         resultsArray.put(result);
                     } catch (Exception e) {
-                        System.err.println("AnalysisAgent: Error en " + v.id + ":" + e.getMessage());
+                        AgentsLogger.severe("AnalysisAgent", "Error en " + v.id + ":" + e.getMessage());
                     }
                 }
-                System.out.printf(
-                        "AnalysisAgent: Acabado: %d Ofertas, %d Viviendas, %d ParaReformar, %d Descartados%n", ofertas,
-                        normales, reforma, descartados);
+                AgentsLogger.info("AnalystAgent", String.format(
+                        "Acabado: %d Ofertas, %d Viviendas, %d ParaReformar, %d Descartados%n",
+                        ofertas, normales, reforma, descartados));
                 JSONObject response = new JSONObject();
                 response.put("resultados", resultsArray);
                 response.put("total", viviendas.size());

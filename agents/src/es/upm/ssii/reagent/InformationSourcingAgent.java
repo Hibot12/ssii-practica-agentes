@@ -28,10 +28,10 @@ public class InformationSourcingAgent extends Agent {
         extractor = new ExtractorKyero();
         try {
             viviendas = extractor.cargarViviendas();
-            System.out.println("Cargadas " + viviendas.size() + " viviendas");
+            AgentsLogger.info("SourcingAgent", "Cargadas " + viviendas.size() + " viviendas");
         } catch (Exception e) {
             viviendas = new ArrayList<>();
-            System.out.println("Error al cargar viviendas: " + e.getMessage());
+            AgentsLogger.info("SourcingAgent", "Error al cargar viviendas: " + e.getMessage());
         }
         comportamiento = new CyclicBehaviour(this) {
             public void action() {
@@ -46,7 +46,7 @@ public class InformationSourcingAgent extends Agent {
                                 resultado = extractor.filtrar(viviendas, filtro);
                             }
                         } catch (JsonSyntaxException e) {
-                            System.out.println("Filtro JSON inválido: " + e.getMessage());
+                            AgentsLogger.info("SourcingAgent", "Filtro JSON inválido: " + e.getMessage());
                         }
                     }
                     ACLMessage respuesta = mensaje.createReply();
@@ -84,7 +84,7 @@ public class InformationSourcingAgent extends Agent {
         try {
             DFService.register(this, descripcion);
         } catch (FIPAException e) {
-            System.out.println("Error al registrar en DF: " + e.getMessage());
+            AgentsLogger.info("SourcingAgent", "Error al registrar en DF: " + e.getMessage());
         }
     }
 
@@ -92,7 +92,7 @@ public class InformationSourcingAgent extends Agent {
         try {
             DFService.deregister(this);
         } catch (FIPAException e) {
-            System.out.println("Error al borrar registro del DF: " + e.getMessage());
+            AgentsLogger.info("SourcingAgent", "Error al borrar registro del DF: " + e.getMessage());
         }
     }
 }
