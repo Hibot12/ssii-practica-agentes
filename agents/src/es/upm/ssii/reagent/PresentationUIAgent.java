@@ -65,12 +65,16 @@ public class PresentationUIAgent extends Agent {
             AID broker = searchForBroker();
 
             if (broker != null) {
+                String convId = "ui-" + myAgent.getLocalName() + "-" + System.currentTimeMillis();
                 ACLMessage req = new ACLMessage(ACLMessage.REQUEST);
                 req.addReceiver(broker);
                 req.setContent(userInput);
+                req.setConversationId(convId);
                 myAgent.send(req);
 
-                MessageTemplate mt = MessageTemplate.MatchSender(broker);
+                MessageTemplate mt = MessageTemplate.and(
+                        MessageTemplate.MatchSender(broker),
+                        MessageTemplate.MatchConversationId(convId));
                 ACLMessage reply = myAgent.blockingReceive(mt);
 
                 if (reply != null) {

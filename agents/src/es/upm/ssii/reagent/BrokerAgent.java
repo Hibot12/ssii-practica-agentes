@@ -37,6 +37,7 @@ public class BrokerAgent extends Agent {
     private AID uiAID;
     private AID sourcingAID;
     private AID analistaAID;
+    private String conversationId;
 
     protected void setup() {
         registrarEnDF();
@@ -77,6 +78,11 @@ public class BrokerAgent extends Agent {
             AgentsLogger.info("Broker","Petición de la UI recibida");
 
             uiAID = mensajeUI.getSender();
+            // Si el UI no manda conversation-id, generamos uno para correlar la cadena.
+            conversationId = mensajeUI.getConversationId();
+            if (conversationId == null || conversationId.isEmpty()) {
+                conversationId = "broker-" + getLocalName() + "-" + System.currentTimeMillis();
+            }
 
             // Forwarding del mensaje hacia SourcingAgent.
             String jsonFiltroRecibido = mensajeUI.getContent();
@@ -90,6 +96,7 @@ public class BrokerAgent extends Agent {
                 ACLMessage peticionSourcing = new ACLMessage(ACLMessage.REQUEST);
                 peticionSourcing.addReceiver(sourcingAID);
                 peticionSourcing.setContent(jsonFiltroRecibido);
+                peticionSourcing.setConversationId(conversationId);
 
                 send(peticionSourcing);
                 AgentsLogger.info("Broker","Filtro enviado a SourcingAgent");
@@ -108,10 +115,12 @@ public class BrokerAgent extends Agent {
         public void action() {
             codigoTransicion = 0;
 
-            // Solo aceptamos el INFORM del sourcing al que hemos preguntado.
+            // Solo aceptamos el INFORM del sourcing de esta misma conversación.
             MessageTemplate filtroSourcing = MessageTemplate.and(
-                    MessageTemplate.MatchPerformative(ACLMessage.INFORM),
-                    MessageTemplate.MatchSender(sourcingAID));
+                    MessageTemplate.and(
+                            MessageTemplate.MatchPerformative(ACLMessage.INFORM),
+                            MessageTemplate.MatchSender(sourcingAID)),
+                    MessageTemplate.MatchConversationId(conversationId));
 
             ACLMessage listaViviendas = blockingReceive(filtroSourcing);
 
@@ -144,6 +153,7 @@ public class BrokerAgent extends Agent {
                     peticionAnalista.addReceiver(analistaAID);
                     peticionAnalista.setContent(contenido);
                     peticionAnalista.setOntology(ONTOLOGY);
+                    peticionAnalista.setConversationId(conversationId);
 
                     send(peticionAnalista);
                     AgentsLogger.info("Broker","JSON de viviendas transferido al Analista.");
@@ -166,7 +176,9 @@ public class BrokerAgent extends Agent {
                         MessageTemplate.and(
                                 MessageTemplate.MatchPerformative(ACLMessage.INFORM),
                                 MessageTemplate.MatchOntology(ONTOLOGY)),
-                        MessageTemplate.MatchSender(analistaAID));
+                        MessageTemplate.and(
+                                MessageTemplate.MatchSender(analistaAID),
+                                MessageTemplate.MatchConversationId(conversationId)));
 
                 ACLMessage informeAnalista = blockingReceive(filtroAnalista);
 
@@ -182,6 +194,7 @@ public class BrokerAgent extends Agent {
             uiAID = null;
             sourcingAID = null;
             analistaAID = null;
+            conversationId = null;
             return 1;
         }
     }
@@ -259,6 +272,9 @@ public class BrokerAgent extends Agent {
             mensaje.addReceiver(uiAID);
             mensaje.setContent(contenido);
             mensaje.setOntology(ONTOLOGY);
+            if (conversationId != null) {
+                mensaje.setConversationId(conversationId);
+            }
             send(mensaje);
         }
     }
