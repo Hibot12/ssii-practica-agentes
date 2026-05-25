@@ -4,9 +4,6 @@ import jade.core.Agent;
 import jade.core.AID;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -14,11 +11,8 @@ import jade.domain.FIPAAgentManagement.Property;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
-import java.util.logging.Logger;
 
 public class BrokerAgent extends Agent {
-
-    private static final Logger logger = Logger.getLogger(BrokerAgent.class.getName());
 
     // Identificadores de los Estados de la FSM
     private static final String ESTADO_ESPERAR_UI = "ESPERAR_UI";
@@ -138,8 +132,6 @@ public class BrokerAgent extends Agent {
                     codigoTransicion = 0;
                     return;
                 }
-
-                //imprimirLista(listaViviendas);
 
                 analistaAID = buscarAgentePorServicio(SERVICE_ANALISTA);
 
@@ -279,27 +271,4 @@ public class BrokerAgent extends Agent {
         }
     }
 
-    private void imprimirLista(ACLMessage listaViviendas) {
-        try {
-            AgentsLogger.info("Broker:","[Resultado del Filtrado JSON]:");
-            // Parseamos el texto y lo convertimos a un Array de JSON
-            JsonArray lista = JsonParser.parseString(listaViviendas.getContent()).getAsJsonArray();
-
-            for (int i = 0; i < lista.size(); i++) {
-
-                // Extraemos el objeto en la posición i.
-                JsonObject elemento = lista.get(i).getAsJsonObject();
-
-                // Sacamos los datos individuales.
-                String titulo = elemento.get("titulo").getAsString();
-                int precio = elemento.get("precio").getAsInt();
-
-                // Los imprimimos.
-                AgentsLogger.info("Broker","-> Casa " + i + ": " + titulo + " cuesta " + precio + "€");
-            }
-
-        } catch (Exception e) {
-            AgentsLogger.info("Broker","Error al procesar la lista JSON: " + e.getMessage());
-        }
-    }
 }

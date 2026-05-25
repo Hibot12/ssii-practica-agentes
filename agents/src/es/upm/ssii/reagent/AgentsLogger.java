@@ -21,7 +21,7 @@ public class AgentsLogger {
             logger.addHandler(fileHandler);
 
         } catch (Exception e) {
-            System.err.println("[AgentsLogger] Error configurando el archivo logs.txt: " + e.getMessage());
+            System.err.println("[AgentsLogger] Error configurando el archivo agents.log: " + e.getMessage());
         }
     }
 

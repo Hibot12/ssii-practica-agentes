@@ -43,7 +43,7 @@ public class PresentationUIAgent extends Agent {
         } catch (FIPAException e) {
             AgentsLogger.severe("UI", "Error al borrar registro del DF: " + e.getMessage());
         }
-        AgentsLogger.severe("UI",getLocalName() + " terminando.");
+        AgentsLogger.info("UI", getLocalName() + " terminando.");
         if (myGui != null) {
             myGui.dispose();
         }
