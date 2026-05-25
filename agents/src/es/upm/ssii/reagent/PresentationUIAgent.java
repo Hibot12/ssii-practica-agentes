@@ -41,9 +41,9 @@ public class PresentationUIAgent extends Agent {
         try {
             DFService.deregister(this);
         } catch (FIPAException e) {
-            AgentsLogger.info("UI", "Error al borrar registro del DF: " + e.getMessage());
+            AgentsLogger.severe("UI", "Error al borrar registro del DF: " + e.getMessage());
         }
-        AgentsLogger.info("UI",getLocalName() + " terminando.");
+        AgentsLogger.severe("UI",getLocalName() + " terminando.");
         if (myGui != null) {
             myGui.dispose();
         }
@@ -354,7 +354,7 @@ public class PresentationUIAgent extends Agent {
         try {
             DFService.register(this, descripcion);
         } catch (FIPAException e) {
-            AgentsLogger.info("UI", "Error al registrar en DF: " + e.getMessage());
+            AgentsLogger.severe("UI", "Error al registrar en DF: " + e.getMessage());
         }
     }
 }
